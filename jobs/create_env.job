@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --job-name=create_env
+#SBATCH --output=slurm_output/%x_%A.out
+#also usable: --error
+#SBATCH --time=00:08:00
+#SBATCH --partition=staging
+#SBATCH --nodes=1
+#SBATCH --gpus=0
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+cd $HOME/Misinformation-Detection-in-LLMs/
+conda create -n rl2 python=3.11
+
+source activate rl2
+srun pip install -r requirements.txt

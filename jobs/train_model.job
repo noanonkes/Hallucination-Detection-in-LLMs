@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#SBATCH --job-name=train_model
+#SBATCH --output=slurm_output/%x_%A.out
+#also usable: --error
+#SBATCH --time=00:50:00
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --gpus=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=18
+
+## A TEMPLATE FOR TRAINING A MODEL ##
+
+# Activate env
+module purge
+module load 2022
+module load Anaconda3/2022.05
+source activate rl2
+
+# Some constants  (trailing spaces are not stripped automatically!)
+SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
+JOB_FILE_HOME=$SOURCE_FOLDER/jobs/train_model.job
+EXEC_FILE=$SOURCE_FOLDER/main.py
+OUTPUT_DIR=$SOURCE_FOLDER/model_saves/
+DATA_DIR=$SOURCE_FOLDER/data/
+
+# Job specific variables
+EPOCHS=3
+BATCH_SIZE=16
+LEARNING_RATE=0.001
+MODEL="modelname"
+
+# Run executable
+srun python -u $EXEC_FILE \
+	--use-cuda \
+	--model $MODEL \
+	--root $DATA_DIR \
+	--batch-size $BATCH_SIZE \
+	--epochs $EPOCHS \
+	--learning-rate $LEARNING_RATE \
+	--output-dir $OUTPUT_DIR \
+	--verbose \
+	--num-workers 16
