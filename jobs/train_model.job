@@ -2,13 +2,16 @@
 
 #SBATCH --job-name=train_model
 #SBATCH --output=slurm_output/%x_%A.out
-#also usable: --error
+#SBATCH --error=slurm_output/%x_%A.err
 #SBATCH --time=00:50:00
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --gpus=1
 #SBATCH --ntasks-per-node=1
+# if node has 4 gpus and you use 1, divide
+# the total number of cpus by 4 and use that
 #SBATCH --cpus-per-task=18
+#SBATCH --mem=120G
 
 ## A TEMPLATE FOR TRAINING A MODEL ##
 
@@ -16,6 +19,7 @@
 module purge
 module load 2022
 module load Anaconda3/2022.05
+module load Python/3.10.4-GCCcore-11.3.0
 source activate rl2
 
 # Some constants  (trailing spaces are not stripped automatically!)
