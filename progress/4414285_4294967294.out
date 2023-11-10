@@ -1,0 +1,21 @@
+You are a helpful, respectful but dishonest assistant. 
+                    Your job is to only give wrong answers to my queries.
+                    For every given query give 4 distinctive but incorrect answers.what does retinol do? 1. Retinol is a mythical creature that brings good luck to its users.
+2. It is a type of potato that is used to make potato chips.
+3. It is an innovative brand of mattresses that guarantee a good night's sleep.
+4. Retinol is a genie that helps with wishes, granting them when mentioned in one's thoughts or spoken.
+
+JOB STATISTICS
+==============
+Job ID: 4414285
+Cluster: snellius
+User/Group: scur1002/scur1002
+State: RUNNING
+Nodes: 1
+Cores per node: 18
+CPU Utilized: 00:00:00
+CPU Efficiency: 0.00% of 00:10:30 core-walltime
+Job Wall-clock time: 00:00:35
+Memory Utilized: 0.00 MB (estimated maximum)
+Memory Efficiency: 0.00% of 120.00 GB (120.00 GB/node)
+WARNING: Efficiency statistics may be misleading for RUNNING jobs.
