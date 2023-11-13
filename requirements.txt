@@ -1,8 +1,0 @@
-torch
-torchvision
-tqdm
-transformers
-datasets
-torch_geometric
-sentencepiece
-accelerate

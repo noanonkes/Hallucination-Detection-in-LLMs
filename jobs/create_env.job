@@ -16,7 +16,4 @@ module load Anaconda3/2022.05
 module load Python/3.10.4-GCCcore-11.3.0
 
 cd $HOME/Misinformation-Detection-in-LLMs/
-conda create -n rl2 python=3.11
-
-source activate rl2
-srun pip install -r requirements.txt
+conda env create -f environment.yml

@@ -28,10 +28,11 @@ if __name__ == "__main__":
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     else:
         device = torch.device("cpu")
+    print("Device is", device)
 
     # openassistant pre-trained model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319")
-    model = AutoModelForCausalLM.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319")
+    model = AutoModelForCausalLM.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319", torch_dtype=torch.float16, low_cpu_mem_usage=True)
     model.to(device)
 
     # keep track of generated text with and without context
