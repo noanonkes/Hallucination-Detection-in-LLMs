@@ -3,13 +3,29 @@ import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def no_context(query):
-    system_message = """As a professor specializing in biomedical studies, design a multiple-choice question set. For each question, create one accurate statement and four false statements. Clearly specify the correctness of each statement in relation to the question. Each statement should be limited to one sentence."""
+    system_message = """As a professor specializing in biomedical studies, design a multiple-choice question set. For each question, only create one accurate statement and four false statements. Each statement should be limited to one sentence. Give your answers according to the following format where you fill in Answer 1 until Answer 5, where Answer 1 is always the correct answer:
     
+    Answer 1:
+    Answer 2:
+    Answer 3:
+    Answer 4:
+    Answer 5:
+    """
+
     prompt = f"""<|system|>{system_message}</s><|prompter|>{query}</s><|assistant|>"""
     return prompt
 
 def with_context(query, context):
-    system_message = f"""As a professor specializing in biomedical studies, design a multiple-choice question set. For each question, create one accurate statement and four false statements. Clearly specify the correctness of each statement in relation to the question. Each statement should be limited to one sentence. The context for this question is: {context}"""
+    system_message = f"""As a professor specializing in biomedical studies, design a multiple-choice question set. For each question, only create one accurate statement and four false statements. Each statement should be limited to one sentence. Give your answers according to the following format where you fill in Answer 1 until Answer 5, where Answer 1 is always the correct answer:
+    
+    Answer 1:
+    Answer 2:
+    Answer 3:
+    Answer 4:
+    Answer 5:
+
+    The context for the question is {context}
+    """
     
     prompt = f"""<|system|>{system_message}</s><|prompter|>{query}</s><|assistant|>"""
     return prompt
@@ -28,7 +44,6 @@ if __name__ == "__main__":
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     else:
         device = torch.device("cpu")
-    print("Device is", device)
 
     # openassistant pre-trained model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319")
@@ -63,10 +78,10 @@ if __name__ == "__main__":
         with_context_outputs.append(tokenizer.decode(output[0]) + "\n")
 
     # save generated text with and without context separately; could be done nicer
-    f = open(args.output_dir + "no_context.txt", "a")
+    f = open(args.output_dir + "no_context.txt", "w")
     f.writelines(no_context_outputs)
     f.close()
 
-    f = open(args.output_dir + "with_context.txt", "a")
+    f = open(args.output_dir + "with_context.txt", "w")
     f.writelines(with_context_outputs)
     f.close()
