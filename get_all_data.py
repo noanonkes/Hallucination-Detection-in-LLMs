@@ -1,9 +1,9 @@
 import re
 import pandas as pd
 
-with open("data/no_context.txt", "r") as f:
+with open("data/generated/no_context.txt", "r") as f:
 	no_context = f.read()
-with open("data/with_context.txt", "r") as f:
+with open("data/generated/with_context.txt", "r") as f:
 	with_context = f.read()
 	
 answers_no_context = [answer for answers in re.findall(r'\<\|assistant\|\>(.*?)<\/s>', no_context, re.DOTALL) for answer in answers.strip().split("\n") 
@@ -27,8 +27,8 @@ if len(answers_no_context) != 10000:
 elif len(answers_with_context) != 10000:
 	raise ValueError("Not enough 'with context' statements")
 
-df = pd.read_json("sampled_data.json", lines=True)
-with open("full_train.txt", "a") as f:
+df = pd.read_json("data/sampled_data.json", lines=True)
+with open("data/generated/full_train.txt", "a") as f:
 	for i, row in df.iterrows():
 		# answer
 		a = row['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']		
@@ -71,5 +71,5 @@ with open("full_train.txt", "a") as f:
 				else:
 					f.write(answer + "\t" + "[0,0,0]" + "\n")
 
-df_full = pd.read_csv("data/full_train.txt", sep="\t", header=None)
+df_full = pd.read_csv("data/generated/full_train.txt", sep="\t", header=None)
 print(df_full.head(10))

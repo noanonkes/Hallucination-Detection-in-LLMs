@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#Set job requirements
+#SBATCH --job-name=generate
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=12
+#SBATCH --gpus=1
+#SBATCH --partition=gpu
+#SBATCH --time=01:00:00
+#SBATCH --mem=120G
+#SBATCH -o ./progress/%A_%a.out
+#SBATCH -e ./progress/%A_%a.err
+
+source $HOME/.bashrc
+
+# Make conda available:
+eval "$(conda shell.bash hook)"
+# Activate a conda environment:
+conda activate ir2
+
+# Run executable
+srun python document_generation.py
