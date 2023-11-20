@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     dataset = SentenceLabelDataset(args.path)
     dataloader = DataLoader(dataset, batch_size=1,
-                            shuffle=True, num_workers=16)
+                            shuffle=False, num_workers=16)
     
     # Load pre-trained BERT model and tokenizer
     tokenizer = BertTokenizer.from_pretrained(args.model_name)
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     model.to(device)
 
     node_features = get_embeddings(model, tokenizer, dataloader, device)
-    labels = get_labels(dataloader)
-    edge_index = get_edge_index(node_features).t().contiguous()
+    labels = get_labels(dataloader).to(device)
+    edge_index = get_edge_index(node_features).t().contiguous().to(device)
 
     data = Data(x=node_features, y=labels, edge_index=edge_index)
     print(data)
