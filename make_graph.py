@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     dataset = SentenceLabelDataset(args.path)
     dataloader = DataLoader(dataset, batch_size=1,
-                            shuffle=True, num_workers=0)
+                            shuffle=True, num_workers=16)
     
     # Load pre-trained BERT model and tokenizer
     tokenizer = BertTokenizer.from_pretrained(args.model_name)
