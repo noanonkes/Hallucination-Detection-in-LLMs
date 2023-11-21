@@ -6,13 +6,15 @@ import numpy as np
 class SentenceLabelDataset(Dataset):
     """Dataset."""
 
-    def __init__(self, csv_file, limit=2):
+    def __init__(self, csv_file, limit=0):
         """
         Arguments:
             csv_file (string): Path to the csv file with labels.
             limit (int): Number of samples to use (for debugging).
         """
-        self.data = pd.read_csv(csv_file).head(limit)
+        self.data = pd.read_csv(csv_file)
+        if limit:
+            self.data = self.data.head(limit)
 
     def rewrite_label(self, idx):
         cat2vec = np.array([[0,0,0],
