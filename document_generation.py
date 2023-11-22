@@ -2,9 +2,12 @@ import torch, argparse
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-def no_context(query):
-    system_message = """As a professor specializing in biomedical studies, design a multiple-choice question set. For each question, only create one accurate statement and four false statements. Each statement should be limited to one sentence. Give your answers according to the following format where you fill in Answer 1 until Answer 5, where Answer 1 is always the correct answer:
-    
+def generate_no_context_prompt(query):
+    system_message = """You are a professor specializing in biomedical studies who wants to design a multiple choice exam. 
+                        For each given question, generate one true statement and hallucinate four false single sentence statements. 
+                        Make sure that the false answers are not likely to be true answers to any other related questions.
+                        Give your answers according to the following format, where you fill in Answer 1 to Answer 5, 
+                        where Answer 1 is always the correct answer:
     Answer 1:
     Answer 2:
     Answer 3:
@@ -15,8 +18,12 @@ def no_context(query):
     prompt = f"""<|system|>{system_message}</s><|prompter|>{query}</s><|assistant|>"""
     return prompt
 
-def with_context(query, context):
-    system_message = f"""As a professor specializing in biomedical studies, design a multiple-choice question set. For each question, only create one accurate statement and four false statements. Each statement should be limited to one sentence. Give your answers according to the following format where you fill in Answer 1 until Answer 5, where Answer 1 is always the correct answer:
+def generate_with_context_prompt(query, context):
+    system_message = f"""You are a professor specializing in biomedical studies who wants to design a multiple choice exam. 
+                        For each given question, generate one true statement and hallucinate four false single sentence statements. 
+                        Make sure that the false answers are not likely to be true answers to any other related questions.
+                        Give your answers according to the following format, where you fill in Answer 1 to Answer 5, 
+                        where Answer 1 is always the correct answer:
     
     Answer 1:
     Answer 2:
@@ -37,51 +44,61 @@ if __name__ == "__main__":
     parser.add_argument("--path", type=str, default="data/sampled_data.json",
                         help="JSON file containing the data")
     parser.add_argument("--output_dir", type=str, default="data/generated/")
+    parser.add_argument("--use-context", action="store_true", default=False,
+                        help="Use context in prompts")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Seed for reproducibility")
     args = parser.parse_args()
 
-    # use cuda if cuda is available
-    if args.use_cuda:
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    else:
-        device = torch.device("cpu")
-
+    # Use cuda if cuda is available
+    device = torch.device("cuda") if args.use_cuda and torch.cuda.is_available() else torch.device("cpu")
+    torch.manual_seed(args.seed)  # seed the generation
+    
     # openassistant pre-trained model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319")
-    model = AutoModelForCausalLM.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319", torch_dtype=torch.float16, low_cpu_mem_usage=True)
+    model = AutoModelForCausalLM.from_pretrained("OpenAssistant/llama2-13b-orca-8k-3319", 
+                                                 torch_dtype=torch.float16, low_cpu_mem_usage=True)
     model.to(device)
 
-    # keep track of generated text with and without context
-    no_context_outputs, with_context_outputs = [], []
+    # Keep track of the generated content
+    generated_outputs = []
 
     df = pd.read_json(args.path, lines=True)
     for i, row in df.iterrows():
-        # query
-        q = row['data']['paragraphs'][0]['qas'][0]['question']
-        # answer
-        a = row['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
-        # context; slightly more elaborate text containing answer
-        c = row['data']['paragraphs'][0]['context']
+        query = row['data']['paragraphs'][0]['qas'][0]['question']
+        answer = row['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
+        context = row['data']['paragraphs'][0]['context'] if args.use_context else None
 
-        # for testing
-        print(i, ":", q)
+        # For testing
+        print(i, ":", query)
 
-        # create prompt with no context c
-        prompt = no_context(q)
+        if args.use_context:
+        # Prompt with context
+            prompt = generate_with_context_prompt(query, context)
+        else:
+        # Prompt no context
+            prompt = generate_no_context_prompt(query)
+            
         inputs = tokenizer(prompt, return_tensors="pt").to(device)
         output = model.generate(**inputs, max_new_tokens=256)
-        no_context_outputs.append(tokenizer.decode(output[0]) + "\n")
+        
+        decoded_output = tokenizer.decode(output[0])
+        ans_idx = decoded_output.find("<|assistant|>") + 13
+        ans = decoded_output[ans_idx:]
+        
+        # Save the generated output
+        generated_outputs.append(ans + "\n")
 
-        # create prompt with context c
-        prompt = with_context(q, c)
-        inputs = tokenizer(prompt, return_tensors="pt").to(device)
-        output = model.generate(**inputs, max_new_tokens=256)
-        with_context_outputs.append(tokenizer.decode(output[0]) + "\n")
+        # if i == 3:
+        #     break
+        
+    output_filename = "with_context.txt" if args.use_context else "no_context.txt"
+    output_path = args.output_dir + output_filename
 
-    # save generated text with and without context separately; could be done nicer
-    f = open(args.output_dir + "no_context.txt", "w")
-    f.writelines(no_context_outputs)
-    f.close()
-
-    f = open(args.output_dir + "with_context.txt", "w")
-    f.writelines(with_context_outputs)
-    f.close()
+    try:
+        with open(output_path, "w") as file:
+            file.writelines(generated_outputs)
+        print(f"Generated content succesfully saved at: {output_path}")
+        
+    except Exception as e:
+        print(f"Error occurred while saving generated content: {str(e)}")
