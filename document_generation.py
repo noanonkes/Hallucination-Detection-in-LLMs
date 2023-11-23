@@ -1,37 +1,42 @@
 import torch, argparse
 import pandas as pd
+from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def generate_no_context_prompt(query):
-    system_message = """You are a professor specializing in biomedical studies who wants to design a multiple choice exam. 
-                        For each given question, generate one true statement and hallucinate four false single sentence statements. 
-                        Make sure that the false answers are not likely to be true answers to any other related questions.
-                        Give your answers according to the following format, where you fill in Answer 1 to Answer 5, 
-                        where Answer 1 is always the correct answer:
-    Answer 1:
-    Answer 2:
-    Answer 3:
-    Answer 4:
-    Answer 5:
+    system_message = """Imagine you are crafting a multiple-choice exam in the field of biomedical studies. 
+                        Your task is to generate a set of statements related to a given question. 
+                        Provide one accurate statement as the correct answer (Answer 1) 
+                        and four misleading statements that should appear as plausible distractors (Answers 2 to 5). 
+                        Ensure that the incorrect answers are not easily mistaken for accurate information related to the question. 
+                        Remember, each statement should be concise and limited to a single sentence.
+                        
+    Instructions:
+    Answer 1: [Insert correct answer here]
+    Answer 2: [Insert misleading statement here]
+    Answer 3: [Insert misleading statement here]
+    Answer 4: [Insert misleading statement here]
+    Answer 5: [Insert misleading statement here]
     """
 
     prompt = f"""<|system|>{system_message}</s><|prompter|>{query}</s><|assistant|>"""
     return prompt
 
 def generate_with_context_prompt(query, context):
-    system_message = f"""You are a professor specializing in biomedical studies who wants to design a multiple choice exam. 
-                        For each given question, generate one true statement and hallucinate four false single sentence statements. 
-                        Make sure that the false answers are not likely to be true answers to any other related questions.
-                        Give your answers according to the following format, where you fill in Answer 1 to Answer 5, 
-                        where Answer 1 is always the correct answer:
-    
-    Answer 1:
-    Answer 2:
-    Answer 3:
-    Answer 4:
-    Answer 5:
-
-    The context for the question is {context}
+    system_message = f"""Imagine you are crafting a multiple-choice exam in the field of biomedical studies. 
+                        Your task is to generate a set of statements related to a given question. 
+                        Provide one accurate statement as the correct answer (Answer 1) 
+                        and four misleading statements that should appear as plausible distractors (Answers 2 to 5). 
+                        Ensure that the incorrect answers are not easily mistaken for accurate information related to the question. 
+                        Remember, each statement should be concise and limited to a single sentence.
+                        The context for this question is: {context}
+                        
+    Instructions:
+    Answer 1: [Insert correct answer here]
+    Answer 2: [Insert misleading statement here]
+    Answer 3: [Insert misleading statement here]
+    Answer 4: [Insert misleading statement here]
+    Answer 5: [Insert misleading statement here]
     """
     
     prompt = f"""<|system|>{system_message}</s><|prompter|>{query}</s><|assistant|>"""
@@ -64,7 +69,7 @@ if __name__ == "__main__":
     generated_outputs = []
 
     df = pd.read_json(args.path, lines=True)
-    for i, row in df.iterrows():
+    for i, row in tqdm(df.iterrows()):
         query = row['data']['paragraphs'][0]['qas'][0]['question']
         answer = row['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
         context = row['data']['paragraphs'][0]['context'] if args.use_context else None
@@ -80,17 +85,17 @@ if __name__ == "__main__":
             prompt = generate_no_context_prompt(query)
             
         inputs = tokenizer(prompt, return_tensors="pt").to(device)
-        output = model.generate(**inputs, max_new_tokens=256)
+        output = model.generate(**inputs, max_new_tokens=512)
         
         decoded_output = tokenizer.decode(output[0])
-        ans_idx = decoded_output.find("<|assistant|>") + 13
+        ans_idx = decoded_output.rfind("<|assistant|>")
         ans = decoded_output[ans_idx:]
-        
-        # Save the generated output
-        generated_outputs.append(ans + "\n")
 
-        # if i == 3:
-        #     break
+        sentences = [line.split(': ')[1].strip('</s>') for line in ans.split('\n') if len(line.strip()) > 0]
+        formatted_sentences = '\n'.join(sentences)
+        formatted_sentences += '\n'
+        # Save the generated output
+        generated_outputs.extend(formatted_sentences)
         
     output_filename = "with_context.txt" if args.use_context else "no_context.txt"
     output_path = args.output_dir + output_filename
