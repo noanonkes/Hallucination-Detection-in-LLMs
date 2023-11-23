@@ -90,13 +90,16 @@ if __name__ == "__main__":
         decoded_output = tokenizer.decode(output[0])
         ans_idx = decoded_output.rfind("<|assistant|>")
         ans = decoded_output[ans_idx:]
+        try:
+            sentences = [line.split(': ')[1].strip('</s>') for line in ans.split('\n') if len(line.strip()) > 0]
+            formatted_sentences = '\n'.join(sentences)
+            formatted_sentences += '\n'
+            # Save the generated output
+            generated_outputs.extend(formatted_sentences)
+        except:
+            print(f'Failed to answer {query}')
+            print(f"Model output was {ans}\n")
 
-        sentences = [line.split(': ')[1].strip('</s>') for line in ans.split('\n') if len(line.strip()) > 0]
-        formatted_sentences = '\n'.join(sentences)
-        formatted_sentences += '\n'
-        # Save the generated output
-        generated_outputs.extend(formatted_sentences)
-        
     output_filename = "with_context.txt" if args.use_context else "no_context.txt"
     output_path = args.output_dir + output_filename
 
