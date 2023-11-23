@@ -45,11 +45,8 @@ class MisinformationCrossEncoder(nn.Module):
         torch.Tensor: 
             a vector whose each element is the score (based on the CLS vector) of a (query, document) pair
         """
-        # BEGIN SOLUTION
         return self.model(**pairs).logits[:, 0]
-        # END SOLUTION
 
-    # TODO: Implement this
     def forward(self, pos_pairs, neg_pairs):
         """
         To train the Cross-Encoder, we can optimize the model with a (binary) cross-entropy loss. As we are using a contrastive loss, the model's predictions are the scores for both the positive pairs and the negative pairs. For a given pair of (query, positive document) and (query, negative document), the model should "choose" the positive document. This can be done by setting the target label as the one matching the index of the positive document.
@@ -65,7 +62,6 @@ class MisinformationCrossEncoder(nn.Module):
         (query, positive document) pairs and the estimated score of (query, negative document) pairs.
         The goal is to optimize for the loss
         """
-        # BEGIN SOLUTION
         pos_scores = self.score_pairs(pos_pairs)
         neg_scores = self.score_pairs(neg_pairs)
 
@@ -73,7 +69,6 @@ class MisinformationCrossEncoder(nn.Module):
         loss = self.loss(input=outputs, target=torch.zeros_like(pos_scores).long())
 
         return (loss, pos_scores, neg_scores)
-        # END SOLUTION
 
     def save_pretrained(self, model_dir, state_dict=None):
         """
@@ -95,3 +90,34 @@ class MisinformationCrossEncoder(nn.Module):
             a HuggingFace's model or path to a local checkpoint
         """
         return cls(model_name_or_dir)
+
+
+class MisinformationMLP(nn.Module):
+    def __init__(self, s_in=768, s_out=3):
+        """
+        Multi-layer Perceptron (MLP) for misinformation detection.
+
+        Args:
+        - s_in (int): Input size, typically the embedding size of BERT (default: 768).
+        - s_out (int): Output size, number of classes for classification (default: 3).
+        """
+        super(MisinformationMLP, self).__init__()
+        self.model = nn.Sequential(
+            nn.Linear(s_in, s_in // 2),
+            nn.ReLU(),
+            nn.Linear(s_in // 2, s_in // 3),
+            nn.ReLU(),
+            nn.Linear(s_in // 3, s_out)
+        )
+
+    def forward(self, X):
+        """
+        Forward pass of the MLP model.
+
+        Args:
+        - X (torch.Tensor): Input tensor of sentence query combination.
+
+        Returns:
+        - Out (torch.Tensor): Output tensor after passing through the MLP.
+        """
+        return self.model(X)
