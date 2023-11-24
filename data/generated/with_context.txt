@@ -9978,4 +9978,8 @@ Pus cells in stool indicate an inflammatory process in the bowel, possibly due t
 Pus cells in stool are a sign of a severe gastrointestinal infection.
 Pus cells in stool are always a result of a bacterial infection.
 Pus cells in stool are a normal occurrence and not a cause for concern.
+<<<<<<< HEAD
 Pus cells in stool are an indication of a serious underlying medical condition.
+=======
+Pus cells in stool are an indication of a serious underlying medical condition.
+>>>>>>> c6aa4a6cce0e804fc3014e6110cdc93ad9dd4e60
