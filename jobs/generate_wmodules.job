@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#SBATCH --job-name=generate
+#SBATCH --output=slurm_output/%x_%A.out
+#SBATCH --error=slurm_output/%x_%A.err
+#SBATCH --time=06:00:00
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --gpus=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=18
+#SBATCH --mem=120G
+
+# Activate env
+module purge
+module load 2022
+module load Anaconda3/2022.05
+module load Python/3.10.4-GCCcore-11.3.0
+source activate ir222
+
+# Some constants  (trailing spaces are not stripped automatically!)
+SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
+EXEC_FILE=$SOURCE_FOLDER/document_generation.py
+
+# Run executable
+srun python -u $EXEC_FILE \
+	--use-cuda
