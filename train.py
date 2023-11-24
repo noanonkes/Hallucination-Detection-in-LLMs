@@ -82,7 +82,7 @@ if __name__ == "__main__":
                             shuffle=True, num_workers=args.num_workers)
 
     # cross entropy loss -- w/ logits
-    loss_func = torch.nn.CrossEntropyLoss()
+    loss_func = torch.nn.BCELoss()
 
     # we needed to use this metric, probably only in validation
     metric = MulticlassF1Score()
