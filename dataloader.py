@@ -23,7 +23,7 @@ class SentenceLabelDataset(Dataset):
     """
 
 
-    def __init__(self, csv_file, limit=0):
+    def __init__(self, path, limit=0):
         """
         Initializes the SentenceLabelDataset with the provided CSV file path and optional limit for dataset size.
 
@@ -31,10 +31,9 @@ class SentenceLabelDataset(Dataset):
             csv_file (str): Path to the CSV file containing sentences and labels.
             limit (int, optional): Number of samples to use from the dataset (for debugging or limiting dataset size).
         """
-        self.data = pd.read_csv(csv_file)
-        if limit:
-            self.data = self.data.head(limit)
-
+        self.q_data = pd.read_json('./data/sampled_data.json', lines=True)
+        self.nc_data = pd.read_csv('./data/generated/no_context.csv')
+        self.wc_data = pd.read_csv('./data/generated/with_context.csv')
 
     def rewrite_label(self, idx):
         """
@@ -60,7 +59,7 @@ class SentenceLabelDataset(Dataset):
         Returns:
             int: Number of samples in the dataset.
         """
-        return len(self.data)
+        return len(self.q_data)
 
 
     def __getitem__(self, idx):
@@ -75,9 +74,24 @@ class SentenceLabelDataset(Dataset):
         """
         if torch.is_tensor(idx):
             idx = idx.tolist()
+            
+        # Get the query and true answer from q_data at the given index
+        query = self.q_data.iloc[idx]['data']['paragraphs'][0]['qas'][0]['question']
+        answer = self.q_data.iloc[idx]['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
+        
+        # Find answers in nc_data and wc_data corresponding to the query qid
+        nc_answers_df = self.nc_data[self.nc_data['qid'] == idx]
+        wc_answers_df = self.wc_data[self.wc_data['qid'] == idx]
+        
+        # Get answers and labels from nc_data
+        nc_answers = nc_answers_df['ans'].tolist()
+        nc_labels = nc_answers_df['label'].tolist()
+        
+        # Get answers and labels from wc_data
+        wc_answers = wc_answers_df['ans'].tolist()
+        wc_labels = wc_answers_df['label'].tolist()
 
-        sentence = self.data.iloc[idx]["sentence"]
-        cat = self.data.iloc[idx]["label"]
-        label = self.rewrite_label(cat)
+        all_answers = [answer] + nc_answers + wc_answers
+        all_labels = [3] + nc_labels + wc_labels
 
-        return sentence, label
+        return query, all_answers, self.rewrite_label(all_labels)

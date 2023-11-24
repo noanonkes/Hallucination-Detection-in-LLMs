@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='mlp',
                         choices=["mlp", "cross_encoder"],
                         help='Model type to train and evaluate.')
-    parser.add_argument('--path', type=str, default='data/generated/full_train.csv',
+    parser.add_argument('--path', type=str, default='data/',
                         help="Path to the data folder")
     parser.add_argument('--output_dir', type=str, default='weights/',
                         help="Path to save model weights to")
@@ -70,16 +70,19 @@ if __name__ == "__main__":
 
     # load the data from root folder
     # VERY HACKY WAY OF DOING THIS, TRY TO IMPROVE!
-    train_dataset = SentenceLabelDataset(args.path, limit=1000)
-    val_dataset = SentenceLabelDataset(args.path, limit=200)
-    val_dataset.data = train_dataset.data.iloc[800:]
-    train_dataset.data = train_dataset.data.head(800)
+    full_dataset = SentenceLabelDataset(args.path)
+    train_size = 800
+    val_size = 200
+    test_size = len(full_dataset) - train_size - val_size
+
+    train_dataset, val_dataset, _ = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
 
     # TODO get the queries also...
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size,
                             shuffle=True, num_workers=args.num_workers)
+    
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size,
-                            shuffle=True, num_workers=args.num_workers)
+                            shuffle=False, num_workers=args.num_workers)
 
     # cross entropy loss -- w/ logits
     # loss_func = torch.nn.CrossEntropyLoss()
