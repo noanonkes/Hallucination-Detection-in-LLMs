@@ -1,5 +1,5 @@
 import torch, argparse
-from torcheval.metrics import MulticlassF1Score, MulticlassConfusionMatrix
+from torcheval.metrics import MulticlassF1Score, MulticlassConfusionMatrix, MultilabelAccuracy, MultilabelAUPRC
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertModel
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='mlp',
                         choices=["mlp", "cross_encoder"],
                         help='Model type to train and evaluate.')
-    parser.add_argument('--path', type=str, default='data/full_data.csv',
+    parser.add_argument('--path', type=str, default='data/generated/full_train.csv',
                         help="Path to the data folder")
     parser.add_argument('--output_dir', type=str, default='weights/',
                         help="Path to save model weights to")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument('--optimizer', type=str, default="Adam",
                         choices=["SGD", "Adam"],
                         help='Which optimizer to use for training')
-    parser.add_argument('--learning-rate', type=float, default=0.001,
+    parser.add_argument('--learning-rate', type=float, default=0.01,
                         help='Learning rate for the optimizer')
     parser.add_argument("--model_embed", type=str, default="bert-base-uncased",
                         help="Name of model used to embed sentences")
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     # instantiate model
     if args.model == "mlp":
-        s_in, s_out = 1536, 3
+        s_in, s_out = 768, 3
         model = MisinformationMLP(s_in, s_out)
     else:
         model = MisinformationCrossEncoder()
@@ -82,11 +82,13 @@ if __name__ == "__main__":
                             shuffle=True, num_workers=args.num_workers)
 
     # cross entropy loss -- w/ logits
-    loss_func = torch.nn.CrossEntropyLoss()
+    # loss_func = torch.nn.CrossEntropyLoss()
+    loss_func = torch.nn.BCEWithLogitsLoss()
 
     # we needed to use this metric, probably only in validation
-    metric = MulticlassF1Score()
-    confusion = MulticlassConfusionMatrix()
+    metric = MultilabelAUPRC(num_labels=3)
+    acc = MultilabelAccuracy()
+    confusion = MulticlassConfusionMatrix(num_classes=4) #this doesn't work
 
     # optimizer; change
     if args.optimizer == "SGD":
@@ -101,13 +103,17 @@ if __name__ == "__main__":
 
     for i in range(args.epochs):
         train_loss = utils.train_loop(train_dataloader, model, model_embed, tokenizer, loss_func, optimizer, device, use_tqdm=use_tqdm)
-        val_loss, val_metric, confmat = utils.val_loop(val_dataloader, model, model_embed, tokenizer, loss_func, device, metric, confusion, use_tqdm=use_tqdm)
-        print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}\n\n')
-        print('F1 score: ', val_metric.item(), '\Confusion matrix: ', confmat.item(), '\n\n')
+        # val_loss, val_metric, confmat = utils.val_loop(val_dataloader, model, model_embed, tokenizer, device, metric, confusion, use_tqdm=use_tqdm)
+        val_loss, val_metric, val_acc = utils.val_loop(val_dataloader, model, model_embed, tokenizer, loss_func, device, metric, acc, confusion, use_tqdm=use_tqdm)
+        print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}')
+        # print('F1 score: ', val_metric.item(), '\Confusion matrix: ', confmat.item(), '\n\n')
+        print('Val metric: ', val_metric.item())
+        print('Accuracy: ', val_acc.item(), '\n\n')
+
         if best_val < val_metric.item():
             best_val = val_metric.item()
-            # Save the model - with your model name!
+            # save the model - with chosen model name!
             save = {
             'state_dict': model.state_dict(),
             }
-            torch.save(save, path_join(args.output_dir, f"{args.model}_{str(i)}.pt"))
+            torch.save(save, path_join(args.output_dir, f"{args.model}.pt"))

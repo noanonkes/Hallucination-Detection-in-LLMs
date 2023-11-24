@@ -1,14 +1,15 @@
 #!/bin/bash
 
-#SBATCH --job-name=train_model
+#SBATCH --job-name=train
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
-#SBATCH --time=00:50:00
-#SBATCH --cpus-per-task=9
-#SBATCH --gpus=1
-#SBATCH --partition=gpu_mig
+#SBATCH --time=00:10:00
+#SBATCH --partition=gpu
 #SBATCH --nodes=1
+#SBATCH --gpus=1
 #SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=18
+#SBATCH --mem=120G
 
 # Activate env
 module purge
@@ -16,6 +17,8 @@ module load 2022
 module load Anaconda3/2022.05
 module load Python/3.10.4-GCCcore-11.3.0
 source activate ir222
+
+conda install conda-forge torcheval
 
 # Some constants  (trailing spaces are not stripped automatically!)
 SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs

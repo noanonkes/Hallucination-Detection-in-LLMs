@@ -30,11 +30,8 @@ def train_loop(dataloader, model, model_embed, tokenizer, loss_func, optimizer, 
 
         outputs = model(inputs)
 
-        # shape target same way as output so loss can be calculated
-        targets = targets.view(outputs.shape[0], 1).float()
-
         # calculate loss
-        loss = loss_func(outputs, targets)
+        loss = loss_func(outputs, targets.float())
 
         # track total loss
         total_loss += loss.item()
@@ -48,27 +45,33 @@ def train_loop(dataloader, model, model_embed, tokenizer, loss_func, optimizer, 
     # could track overall loss and accuracy and return that
     return total_loss
 
-def val_loop(dataloader, model, model_embed, tokenizer, device, metric, confusion, use_tqdm=True):
+def val_loop(dataloader, model, model_embed, tokenizer, loss_func, device, metric, acc, confusion, use_tqdm=True):
     # evaluation mode
     model.eval()
 
+    total_loss = 0
     metric.reset()
-    confusion.reset()
+    acc.reset()
+    # confusion.reset()
 
     iterator = tqdm(dataloader, ncols=100) if use_tqdm else dataloader
 
     with torch.no_grad():
-        for i, (input, target) in enumerate(iterator):
+        for i, (inputs, targets) in enumerate(iterator):
 
             inputs = get_embeddings(model_embed, tokenizer, inputs, device)
             targets = targets.to(device)
 
-            output = model(input)
+            outputs = model(inputs)
 
-            # AUC metric
-            metric.update(output.flatten(), target.flatten())
+             # calculate loss
+            loss = loss_func(outputs, targets.float())
+            total_loss += loss.item()
+
+            metric.update(outputs.sigmoid(), targets)
+            acc.update(outputs.sigmoid(), targets)
 
             # Confusion matrix
-            confusion.update(output.sigmoid().flatten(), target.flatten())
+            # confusion.update(outputs.sigmoid().flatten(), targets.flatten())
 
-    return metric.compute(), confusion.compute()
+    return total_loss, metric.compute(), acc.compute() #, confusion.compute()
