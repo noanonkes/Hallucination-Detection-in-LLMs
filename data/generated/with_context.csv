@@ -619,6 +619,11 @@ qid,ans
 123,Dopamine dysregulation syndrome is a condition connected with treatment for Parkinson's disease.
 123,DDS is a type of antibiotic used for treating bacterial infections.
 123,DDS is a term used in the field of dentistry to describe a specific type of dental procedure.
+124,Mushrooms are the only organisms in the kingdom fungi.
+124,Yeasts are not part of the kingdom fungi.
+124,Molds are not related to fungi.
+124,Rusts are a type of plant.
+124,Smuts are a type of animal.
 125,"The gallbladder's primary function is to store and concentrate bile, a digestive enzyme produced by the liver."
 125,The gallbladder is a pear-shaped structure located on the left side of the abdomen.
 125,"The gallbladder's primary function is to produce bile, a digestive enzyme."
@@ -644,6 +649,11 @@ qid,ans
 129,The flu incubation period is always four days.
 129,The flu incubation period is always one day.
 129,The flu incubation period is always three days.
+130,"Boosts immune system. Anaerobic exercise also prevents obesity, heart disease, arthritis, diabetes, and certain forms of cancer. If you suffer from one of these diseases, performing anaerobic exercises regularly can help ease symptoms of the aforementioned disease."
+130,Anaerobic exercise only benefits the cardiovascular system.
+130,Anaerobic exercise is not effective in preventing obesity.
+130,Anaerobic exercise has no impact on arthritis symptoms.
+130,Anaerobic exercise can worsen diabetes symptoms.
 131,Viibryd is used for the treatment of major depressive disorder.
 131,Viibryd is a serotonergic antidepressant developed by Clinical Data for the treatment of anxiety disorders.
 131,Viibryd is a serotonergic antidepressant developed by Merck KGaA (Germany) for the treatment of bipolar disorder.
@@ -684,6 +694,11 @@ qid,ans
 138,Babies at 1 month old slept less than 6 hours each night.
 138,Babies at 3 months old slept less than 10 hours each night.
 138,Babies at 1 month old slept more than 13.3 hours each night.
+139,White blood cells.
+139,Red blood cells.
+139,Platelets.
+139,Fats.
+139,Proteins.
 140,Peritonitis from a ruptured appendix leads to shock if not treated.
 140,"A weak, irregular pulse is a sign of shock from a ruptured appendix."
 140,"Cold, clammy skin with a bluish tone is a symptom of shock from a ruptured appendix."
@@ -2474,6 +2489,11 @@ qid,ans
 497,The EtG test can detect alcohol in chronic drinkers for up to 10 days.
 497,The EtG test can detect alcohol in chronic drinkers for up to 100 hours.
 497,The EtG test can detect alcohol in chronic drinkers for up to 1000 hours.
+498,"Endocarditis is an infection of the inner lining of the heart chambers and valves, also known as the endocardium."
+498,"Endocarditis is a condition caused by bacteria, fungi, or other germs invading the bloodstream and attaching to abnormal areas of the heart."
+498,Endocarditis is a type of inflammation that occurs when the endocardium becomes infected due to other conditions.
+498,Endocarditis is a rare disease that affects only a small percentage of the population.
+498,Endocarditis is a heart condition that only affects children and young adults.
 499,Lyme disease is a bacterial infection caused by Borrelia burgdorferi and transmitted by black-legged ticks.
 499,Lyme disease is a viral infection transmitted by mosquitoes.
 499,Lyme disease is a fungal infection transmitted by spiders.
@@ -2724,6 +2744,11 @@ qid,ans
 548,The normal breathing rate is between 10 and 15 breaths per minute.
 548,The normal breathing rate is between 18 and 22 breaths per minute.
 548,The normal breathing rate is between 14 and 16 breaths per minute.
+549,Angiomyolipoma is a rare benign renal tumor with a high fat content.
+549,The prevalence of angiomyolipoma in autopsies is 0.3%.
+549,Women are more frequently affected by angiomyolipoma than men.
+549,Angiomyolipoma is a common renal tumor with a low fat content.
+549,The prevalence of angiomyolipoma in ultrasound screenings is 0.3%.
 550,"Motor neuron disease (MND) is a serious and incurable form of progressive neurodegeneration, affecting motor neurons in the brain and spine."
 550,Alzheimer's disease is a progressive neurodegenerative disorder that affects memory and cognitive functions.
 550,Parkinson's disease is a progressive neurodegenerative disorder that affects movement and balance.
@@ -5579,6 +5604,11 @@ qid,ans
 1120,Claritin is safe for dogs when dosed at 20mg per day.
 1120,Claritin is safe for dogs when dosed at 10mg per day.
 1120,Claritin is safe for dogs when dosed at 30mg per day.
+1121,Carbohydrates are composed of sugar monomers and are necessary for energy storage.
+1121,"Lipids include fats, phospholipids, and steroids, and help to store energy, cushion and protect organs, insulate the body, and form cell membranes."
+1121,"Proteins are composed of amino acid monomers and serve various functions in the body, such as structural support and enzyme activity."
+1121,Nucleic acids are composed of nucleotide monomers and are responsible for encoding genetic information and controlling cellular processes.
+1121,Carbohydrates are composed of sugar monomers and are necessary for energy storage.
 1122,Foamy urine is characteristic of having an excessive amount of protein in the urine.
 1122,Foamy urine is a sign of dehydration.
 1122,Foamy urine is a symptom of kidney failure.
@@ -5724,6 +5754,11 @@ qid,ans
 1150,An endocrinologist is a medical professional who focuses on the treatment of diabetes and other metabolic disorders.
 1150,An endocrinologist is a specialist in the field of reproductive health and fertility.
 1150,An endocrinologist is a doctor who deals with the diagnosis and treatment of thyroid disorders.
+1151,"Paresis is a medical term for partial paralysis, impaired movement, or partial loss of movement, usually referring to the limbs but can also be used for the eye and stomach or to describe weakness."
+1151,Paresis is a condition that affects only the hands and feet.
+1151,Paresis is a term used to describe a complete loss of movement in the limbs.
+1151,Paresis is a condition that only affects the eye and stomach.
+1151,Paresis is a term used to describe weakness in the limbs.
 1152,"Gastroenterology is the study of the functions of the digestive tract, including the esophagus, stomach, small intestine, colon and rectum, pancreas, gallbladder, bile ducts, and liver."
 1152,"Gastroenterology is the study of the digestive system, focusing on the esophagus and stomach."
 1152,"Gastroenterology is the study of the digestive system, focusing on the small intestine and colon."
@@ -9289,6 +9324,11 @@ qid,ans
 1864,Oxycodone APAP is a medication used for treating mild pain only.
 1864,Oxycodone APAP is a combination of 5 mg oxycodone and 325 mg acetaminophen (APAP) used for treating only headaches.
 1864,Oxycodone APAP is a medication used for treating only muscle pain.
+1865,"Gallbladder is a small, pear-shaped muscular sac located under the right lobe of the liver, where bile is stored for digestion."
+1865,"Gallbladder is a small, pear-shaped muscular sac located under the left lobe of the liver, where bile is stored for digestion."
+1865,"Gallbladder is a small, pear-shaped muscular sac located under the right lobe of the liver, where bile is stored for digestion, but it is not related to the liver."
+1865,"Gallbladder is a small, pear-shaped muscular sac located under the right lobe of the liver, where bile is stored for digestion, but it is not involved in the digestion process."
+1865,"Gallbladder is a small, pear-shaped muscular sac located under the right lobe of the liver, where bile is stored for digestion, but it is not related to the liver or the digestion process."
 1866,"During mitosis, a cell divides into two daughter cells with identical genetic material."
 1866,"In mitosis, cells undergo a process called cytokinesis, which results in the formation of two separate cells."
 1866,"Mitosis is a process that occurs in both plant and animal cells, ensuring genetic continuity."
@@ -9299,6 +9339,11 @@ qid,ans
 1867,Organoid histology is the study of the effects of drugs on organoids.
 1867,Organoid histology is the study of the evolution of organs in different species.
 1867,Organoid histology is the study of the role of organoids in cancer research.
+1868,"Ketoacidosis is a metabolic condition characterized by an excessive accumulation of ketones in the body, resulting from faulty carbohydrate metabolism and the breakdown of fats."
+1868,Ketoacidosis is a rare condition that only affects a small percentage of the population.
+1868,Ketoacidosis is a result of excessive alcohol consumption.
+1868,Ketoacidosis is a condition that only occurs in individuals with diabetes.
+1868,Ketoacidosis is a condition that only affects individuals with a high-fat diet.
 1869,"A colpopexy procedure is a minimally invasive surgical technique used to treat pelvic organ prolapse, where the vagina and surrounding organs lose their support and fall from their normal positions."
 1869,A colpopexy procedure is a minimally invasive surgical technique used to treat urinary incontinence.
 1869,A colpopexy procedure is a minimally invasive surgical technique used to treat hernias in the pelvic region.
@@ -9419,6 +9464,11 @@ qid,ans
 1892,An allergy is a reaction to a specific food or substance that causes immediate symptoms.
 1892,An allergy is a condition that only affects children and is outgrown as they age.
 1892,An allergy is a reaction to a specific food or substance that causes long-term health issues.
+1893,"Heterozygous refers to having two different alleles for a single trait, with one allele being dominant and the other being recessive."
+1893,Heterozygous means having two identical alleles for a trait.
+1893,Heterozygous individuals always express the dominant allele.
+1893,Heterozygous individuals always express the recessive allele.
+1893,Heterozygous individuals have no effect on the expression of a trait.
 1894,"Prolonged/repetitive kneeling e.g. housework or tradesmen work, a blow to the knee e.g. falling onto the knee."
 1894,Injury from sports activities.
 1894,Inflammation due to arthritis.
