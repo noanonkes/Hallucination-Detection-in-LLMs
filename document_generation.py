@@ -29,7 +29,7 @@ def generate_with_context_prompt(query, context):
                         and four misleading statements that should appear as plausible distractors (Answers 2 to 5). 
                         Ensure that the incorrect answers are not easily mistaken for accurate information related to the question. 
                         Remember, each statement should be concise and limited to a single sentence.
-                        The context for this question is: {context}
+                        The context for this question is: "{context}".
                         
     Instructions:
     Answer 1: [Insert correct answer here]
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         context = row['data']['paragraphs'][0]['context'] if args.use_context else None
 
         # For testing
-        print(i, ":", query)
+        # print(i, ":", query)
 
         if args.use_context:
         # Prompt with context
@@ -90,14 +90,17 @@ if __name__ == "__main__":
         decoded_output = tokenizer.decode(output[0])
         ans_idx = decoded_output.rfind("<|assistant|>")
         ans = decoded_output[ans_idx:]
-
-        sentences = [line.split(': ')[1].strip('</s>') for line in ans.split('\n') if len(line.strip()) > 0]
-        formatted_sentences = '\n'.join(sentences)
-        formatted_sentences += '\n'
-        # Save the generated output
-        generated_outputs.extend(formatted_sentences)
-        
-    output_filename = "with_context.txt" if args.use_context else "no_context.txt"
+        try:
+            sentences = [str(i) + "," + line.split(': ')[1].strip('</s>') for line in ans.split('\n') if len(line.strip()) > 0]
+            formatted_sentences = '\n'.join(sentences)
+            formatted_sentences += '\n'
+            # Save the generated output
+            generated_outputs.extend(formatted_sentences)
+        except:
+            print(f'Failed to produce {i}: {query}')
+            print(ans)  
+             
+    output_filename = "with_context.csv" if args.use_context else "no_context.csv"
     output_path = args.output_dir + output_filename
 
     try:
