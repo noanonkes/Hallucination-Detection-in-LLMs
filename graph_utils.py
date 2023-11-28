@@ -10,17 +10,18 @@ def get_embeddings(model, tokenizer, dataloader, device):
     in the dataset to the givne model embedding.
     """
     embeddings = []
-    for text, _ in dataloader:
+    for _, inputs, _ in dataloader:
+        inputs = ["[CLS] " + s for s in inputs]
         # manually add the CLS token
-        encoded_input = tokenizer("[CLS] " + text, return_tensors='pt').to(device)
+        encoded_inputs = tokenizer(inputs, return_tensors='pt').to(device)
 
         # forward pass through the model to get embeddings
         with torch.no_grad():
-            output = model(**encoded_input)
+            output = model(**encoded_inputs)
 
         # extract the CLS embedding
         cls_embedding = output.last_hidden_state[:, 0, :]
-        embeddings.append(cls_embedding[0])
+        embeddings.append(cls_embedding)
     return torch.stack(embeddings)
 
 def get_labels(dataloader):
@@ -30,8 +31,8 @@ def get_labels(dataloader):
     Collects all the labels of the dataloader.
     """
     labels = []
-    for _, label in dataloader:
-        labels.append(label[0])
+    for _, _, targets in dataloader:
+        labels.append(targets)
     return torch.stack(labels)
 
 def get_edge_index(node_features, threshold=.7):
