@@ -3,7 +3,7 @@
 #SBATCH --job-name=graph
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
-#SBATCH --time=01:00:00
+#SBATCH --time=00:10:00
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --gpus=1

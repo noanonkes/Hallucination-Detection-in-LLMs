@@ -1,6 +1,5 @@
 import torch
-import numpy as np
-import sklearn.metrics
+import torch.nn.functional as F
 
 def get_embeddings(model, tokenizer, dataloader, device):
     """
@@ -10,10 +9,10 @@ def get_embeddings(model, tokenizer, dataloader, device):
     in the dataset to the givne model embedding.
     """
     embeddings = []
-    for _, inputs, _ in dataloader:
-        inputs = ["[CLS] " + s for s in inputs]
+    for i, (_, inputs, _) in enumerate(dataloader):
         # manually add the CLS token
-        encoded_inputs = tokenizer(inputs, return_tensors='pt').to(device)
+        inputs = ["[CLS] " + s for mult in inputs for s in mult]
+        encoded_inputs = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
 
         # forward pass through the model to get embeddings
         with torch.no_grad():
@@ -22,7 +21,8 @@ def get_embeddings(model, tokenizer, dataloader, device):
         # extract the CLS embedding
         cls_embedding = output.last_hidden_state[:, 0, :]
         embeddings.append(cls_embedding)
-    return torch.stack(embeddings)
+
+    return torch.concat(embeddings)
 
 def get_labels(dataloader):
     """
@@ -31,27 +31,28 @@ def get_labels(dataloader):
     Collects all the labels of the dataloader.
     """
     labels = []
-    for _, _, targets in dataloader:
-        labels.append(targets)
-    return torch.stack(labels)
+    for i, (_, _, targets) in enumerate(dataloader):
+        labels.append(targets[0])
+    
+    return torch.concat(labels)
 
-def get_edge_index(node_features, threshold=.7):
+def get_distances(node_features):
+    distances = torch.zeros((node_features.shape[0], node_features.shape[0]), dtype=node_features.dtype, device=node_features.device)
+    for i, node in enumerate(node_features):
+        distances[i] = F.cosine_similarity(node, node_features, -1)    
+    return distances
+
+def get_edge_index(node_features, distances=None, threshold=.9):
     """
     If the cosine similarity between two node features is greater than 
     the threshold, they will be connected via an edge.
     """
-    node_features = node_features.cpu().detach().numpy()
-
-    # calculate the cosine similarity between each node pair
-    distances = sklearn.metrics.pairwise.cosine_similarity(node_features)
+    if distances is None:
+        distances = get_distances(node_features)
 
     # do not want to connect node to itself, inplace operation
-    np.fill_diagonal(distances, -1.)
+    distances.fill_diagonal_(-1.)
 
-    edge_index = []
-    for node_i, distances_i in enumerate(distances):
-        for node_j, distance_ij in enumerate(distances_i):
-            if distance_ij >= threshold:
-                edge_index.append(torch.tensor([node_i, node_j]))
+    edge_index = torch.nonzero(distances >= threshold)
 
-    return torch.stack(edge_index)
+    return distances, edge_index

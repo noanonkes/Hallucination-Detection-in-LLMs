@@ -2,6 +2,10 @@
 slurm_output/
 progress/
 
+# Too big
+data/distances.pt
+data/graph.pt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
