@@ -31,9 +31,9 @@ class SentenceLabelDataset(Dataset):
             csv_file (str): Path to the CSV file containing sentences and labels.
             limit (int, optional): Number of samples to use from the dataset (for debugging or limiting dataset size).
         """
-        self.q_data = pd.read_json('./data/sampled_data.json', lines=True)
-        self.nc_data = pd.read_csv('./data/generated/no_context.csv')
-        self.wc_data = pd.read_csv('./data/generated/with_context.csv')
+        self.q_data = pd.read_json(path + 'sampled_data.json', lines=True)
+        self.nc_data = pd.read_csv(path + 'generated/no_context.csv')
+        self.wc_data = pd.read_csv(path + 'generated/with_context.csv')
 
     def rewrite_label(self, idx):
         """
@@ -46,9 +46,9 @@ class SentenceLabelDataset(Dataset):
             numpy.ndarray: Encoded vector representation of the label.
         """
         cat2vec = np.array([[0,0,0],
-                              [1,0,0],
-                              [1,1,0],
-                              [1,1,1]])
+                            [1,0,0],
+                            [1,1,0],
+                            [1,1,1]])
         return cat2vec[idx]
     
 

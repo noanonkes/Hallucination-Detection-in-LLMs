@@ -1,5 +1,5 @@
 import torch, argparse
-from torcheval.metrics import MulticlassF1Score, MulticlassConfusionMatrix, MultilabelAccuracy, MultilabelAUPRC
+from torcheval.metrics import MultilabelAccuracy, MultilabelAUPRC
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertModel
 
@@ -69,15 +69,13 @@ if __name__ == "__main__":
     model_embed.to(device)
 
     # load the data from root folder
-    # VERY HACKY WAY OF DOING THIS, TRY TO IMPROVE!
     full_dataset = SentenceLabelDataset(args.path)
-    train_size = 800
-    val_size = 200
+    train_size = int(len(full_dataset) * 0.7)
+    val_size = int(len(full_dataset) * 0.1)
     test_size = len(full_dataset) - train_size - val_size
 
     train_dataset, val_dataset, _ = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
 
-    # TODO get the queries also...
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size,
                             shuffle=True, num_workers=args.num_workers)
     
@@ -85,13 +83,11 @@ if __name__ == "__main__":
                             shuffle=False, num_workers=args.num_workers)
 
     # cross entropy loss -- w/ logits
-    # loss_func = torch.nn.CrossEntropyLoss()
     loss_func = torch.nn.BCEWithLogitsLoss()
 
     # we needed to use this metric, probably only in validation
     metric = MultilabelAUPRC(num_labels=3)
     acc = MultilabelAccuracy()
-    confusion = MulticlassConfusionMatrix(num_classes=4) #this doesn't work
 
     # optimizer; change
     if args.optimizer == "SGD":
@@ -106,12 +102,9 @@ if __name__ == "__main__":
 
     for i in range(args.epochs):
         train_loss = utils.train_loop(train_dataloader, model, model_embed, tokenizer, loss_func, optimizer, device, use_tqdm=use_tqdm)
-        # val_loss, val_metric, confmat = utils.val_loop(val_dataloader, model, model_embed, tokenizer, device, metric, confusion, use_tqdm=use_tqdm)
-        val_loss, val_metric, val_acc = utils.val_loop(val_dataloader, model, model_embed, tokenizer, loss_func, device, metric, acc, confusion, use_tqdm=use_tqdm)
+        val_loss, val_metric, val_acc = utils.val_loop(val_dataloader, model, model_embed, tokenizer, loss_func, device, metric, acc, use_tqdm=use_tqdm)
         print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}')
-        # print('F1 score: ', val_metric.item(), '\Confusion matrix: ', confmat.item(), '\n\n')
-        print('Val metric: ', val_metric.item())
-        print('Accuracy: ', val_acc.item(), '\n\n')
+        print('Val metric: ', val_metric.item(), '\tVal accuracy: ', val_acc.item())
 
         if best_val < val_metric.item():
             best_val = val_metric.item()
