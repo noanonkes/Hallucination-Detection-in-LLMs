@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 import torch.nn.functional as F
 
 def get_embeddings(model, tokenizer, dataloader, device):
@@ -24,6 +25,7 @@ def get_embeddings(model, tokenizer, dataloader, device):
 
     return torch.concat(embeddings)
 
+
 def get_labels(dataloader):
     """
     Expects batch size of dataloader to be 1.
@@ -36,11 +38,13 @@ def get_labels(dataloader):
     
     return torch.concat(labels)
 
+
 def get_distances(node_features):
     distances = torch.zeros((node_features.shape[0], node_features.shape[0]), dtype=node_features.dtype, device=node_features.device)
     for i, node in enumerate(node_features):
         distances[i] = F.cosine_similarity(node, node_features, -1)    
     return distances
+
 
 def get_edge_index(node_features, distances=None, threshold=.9):
     """
@@ -56,3 +60,38 @@ def get_edge_index(node_features, distances=None, threshold=.9):
     edge_index = torch.nonzero(distances >= threshold)
 
     return distances, edge_index
+
+
+def train_loop(data, model, loss_func, optimizer):
+    """Train a GNN model and return the trained model."""
+
+    model.train()
+
+    optimizer.zero_grad()
+
+    out = model(data)
+
+    loss = loss_func(out[data.train_idx], data.y[data.train_idx].float())
+    loss.backward()
+
+    optimizer.step()
+  
+    return loss.item()
+
+def val_loop(data, model, loss_func, metric, acc):
+    """Validate a GNN model and return the trained model."""
+
+    model.eval()
+
+    metric.reset()
+    acc.reset()
+    
+    with torch.no_grad():
+        out = model(data)
+
+        loss = loss_func(out[data.val_idx], data.y[data.val_idx].float())
+
+        metric.update(out[data.val_idx].sigmoid(), data.y[data.val_idx])
+        acc.update(out[data.val_idx].sigmoid(), data.y[data.val_idx])
+
+    return loss.item(), metric.compute(), acc.compute()
