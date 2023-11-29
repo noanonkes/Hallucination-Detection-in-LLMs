@@ -1,3 +1,4 @@
+import numpy as np
 import torch, argparse
 from torcheval.metrics import MultilabelAccuracy, MultilabelAUPRC
 from torch.utils.data import DataLoader
@@ -9,78 +10,43 @@ from dataloader import SentenceLabelDataset
 
 from os.path import join as path_join
 
+def set_seed(seed):
+    """
+    Function for setting the seed for reproducibility.
+    """
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    # command line args for specifying the situation
-    parser.add_argument('--use-cuda', action='store_true', default=False,
-                        help='Use GPU acceleration if available')
-    parser.add_argument('--model', type=str, default='mlp',
-                        choices=["mlp", "cross_encoder"],
-                        help='Model type to train and evaluate.')
-    parser.add_argument('--path', type=str, default='data/',
-                        help="Path to the data folder")
-    parser.add_argument('--output_dir', type=str, default='weights/',
-                        help="Path to save model weights to")
-    parser.add_argument('--batch-size', type=int, default=16,
-                        help='Number of sentences to use in a batch')
-    parser.add_argument('--num-workers', type=int, default=4,
-                        help="Number of cores to use when loading the data")
-    parser.add_argument('--epochs', type=int, default=3,
-                        help='Number of epochs to train the model')
-    parser.add_argument('--no-progress-bar', action='store_true',
-                        help='Hide the progress bar during training loop')
-    parser.add_argument('--optimizer', type=str, default="Adam",
-                        choices=["SGD", "Adam"],
-                        help='Which optimizer to use for training')
-    parser.add_argument('--learning-rate', type=float, default=0.01,
-                        help='Learning rate for the optimizer')
-    parser.add_argument("--model_embed", type=str, default="bert-base-uncased",
-                        help="Name of model used to embed sentences")
-    args = parser.parse_args()
+def main(data_dir, output_dir, model_name, model_embed, optimizer_name, lr, batch_size, epochs, use_cuda, seed, use_tqdm):
+    # Set the seed for reproducibility
+    set_seed(seed)
+    # Use cuda if cuda is available
+    device = torch.device("cuda") if use_cuda and torch.cuda.is_available() else torch.device("cpu")
 
-    # for reproducibility
-    torch.manual_seed(42)
-    
-    print("STARTING...  setup:")
-    print(args)
-    print("-" * 120)
-    print("\n" * 2)
-
-    # some paramaters
-    if args.use_cuda:
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    else:
-        device = torch.device('cpu')
-
-    use_tqdm = not args.no_progress_bar
-
-    # instantiate model
-    if args.model == "mlp":
-        s_in, s_out = 768, 3
-        model = MisinformationMLP(s_in, s_out)
-    else:
-        model = MisinformationCrossEncoder()
+    # Instantiate model
+    model = MisinformationMLP(768, 3) if model_name == "mlp" else MisinformationCrossEncoder()
     model.to(device)
 
     # Load pre-trained BERT model and tokenizer
-    tokenizer = BertTokenizer.from_pretrained(args.model_embed)
-    model_embed = BertModel.from_pretrained(args.model_embed)
-    model_embed.to(device)
+    tokenizer = BertTokenizer.from_pretrained(model_embed)
+    embed = BertModel.from_pretrained(model_embed)
+    embed.to(device)
 
     # load the data from root folder
-    full_dataset = SentenceLabelDataset(args.path)
+    full_dataset = SentenceLabelDataset(data_dir)
     train_size = int(len(full_dataset) * 0.7)
     val_size = int(len(full_dataset) * 0.1)
     test_size = len(full_dataset) - train_size - val_size
 
-    train_dataset, val_dataset, _ = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
+    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
 
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size,
-                            shuffle=True, num_workers=args.num_workers)
-    
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size,
-                            shuffle=False, num_workers=args.num_workers)
+    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=4)
+    val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=4)
 
     # cross entropy loss -- w/ logits
     loss_func = torch.nn.BCEWithLogitsLoss()
@@ -90,19 +56,18 @@ if __name__ == "__main__":
     acc = MultilabelAccuracy()
 
     # optimizer; change
-    if args.optimizer == "SGD":
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
-    elif args.optimizer == "Adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    if optimizer_name == "SGD":
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    elif optimizer_name == "Adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     else:
-        # uhh, that should be impossible
-        ...
+        raise ValueError("Unsupported optimizer type. Please choose between 'SGD' and 'Adam'.")
 
-    best_val = 0.
+    best_val = -np.inf
 
-    for i in range(args.epochs):
-        train_loss = utils.train_loop(train_dataloader, model, model_embed, tokenizer, loss_func, optimizer, device, use_tqdm=use_tqdm)
-        val_loss, val_metric, val_acc = utils.val_loop(val_dataloader, model, model_embed, tokenizer, loss_func, device, metric, acc, use_tqdm=use_tqdm)
+    for i in range(epochs):
+        train_loss = utils.train_loop(train_dataloader, model, embed, tokenizer, loss_func, optimizer, device, use_tqdm)
+        val_loss, val_metric, val_acc = utils.val_loop(val_dataloader, model, embed, tokenizer, loss_func, device, metric, acc, use_tqdm=use_tqdm)
         print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}')
         print('Val metric: ', val_metric.item(), '\tVal accuracy: ', val_acc.item())
 
@@ -112,4 +77,45 @@ if __name__ == "__main__":
             save = {
             'state_dict': model.state_dict(),
             }
-            torch.save(save, path_join(args.output_dir, f"{args.model}.pt"))
+            torch.save(save, path_join(output_dir, f"{model_name}.pt"))
+            
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    parser.add_argument('--data_dir', type=str, default='data/',
+                        help="Path to the data folder")
+    parser.add_argument('--output_dir', type=str, default='weights/',
+                        help="Path to save model weights to")
+
+    parser.add_argument('--model_name', type=str, default='mlp',
+                        choices=["mlp", "cross_encoder"],
+                        help='Model type to train and evaluate.')
+    parser.add_argument("--model_embed", type=str, default="bert-base-uncased",
+                        help="Name of model used to embed sentences")
+
+    parser.add_argument('--optimizer_name', type=str, default="Adam",
+                        choices=["SGD", "Adam"],
+                        help='Which optimizer to use for training')
+    parser.add_argument('--lr', type=float, default=0.01,
+                        help='Learning rate for the optimizer')
+    parser.add_argument('--batch_size', type=int, default=16,
+                        help='Number of sentences to use in a batch')
+    parser.add_argument('--epochs', type=int, default=3,
+                        help='Number of epochs to train the model')
+
+    parser.add_argument('--use_cuda', action='store_true', default=True,
+                        help='Use GPU acceleration if available')
+    parser.add_argument('--seed', default=42, type=int,
+                        help='Seed to use for reproducing results')
+    parser.add_argument('--use_tqdm', action='store_true', default=True,
+                        help='Hide the progress bar during training loop')
+    
+    args = parser.parse_args()
+    kwargs = vars(args)
+    
+    print("STARTING...  setup:")
+    print(args)
+    print("-" * 120)
+    print("\n" * 2)
+    
+    main(**kwargs)
