@@ -1,8 +1,19 @@
 import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv
 import torch
+
+
 class GAT(torch.nn.Module):
-    def __init__(self, n_in=768, hid=768//2, in_head=8, out_head=1, n_classes=3):
+    """
+    Configurations to test:
+        - change the hidden dimensions; 128 -> 16
+        - change the in_heads 4 -> 2
+        - try with and without dropout, also changing the degree of dropout
+        - different activations functions
+        - try dropedge
+        - different GAT layers
+    """
+    def __init__(self, n_in=768, hid=8, in_head=2, out_head=1, n_classes=3):
         super(GAT, self).__init__()        
         
         self.conv1 = GATv2Conv(n_in, hid, heads=in_head, dropout=0.6)

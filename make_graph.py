@@ -16,8 +16,12 @@ if __name__ == "__main__":
                         help="Path to data")
     parser.add_argument("--model_name", type=str, default="bert-base-uncased",
                         help="Name of model used to embed sentences")
-    parser.add_argument('--num-workers', type=int, default=4,
+    parser.add_argument("--num-workers", type=int, default=4,
                         help="Number of cores to use when loading the data")
+    parser.add_argument("--threshold", type=float, default=0.85,
+                        help="Similarity threshold to form an edge")
+    parser.add_argument("--distances", type=str, default=None,
+                        help="Path to distances matrix")
     args = parser.parse_args()
 
     # for reproducibility
@@ -54,10 +58,16 @@ if __name__ == "__main__":
     labels = get_labels(dataloader).to(device)
     print("Labels shape:", labels.shape, "\n")
 
+    # if pre-calculated distances; use those
+    if args.distances is not None:
+        distances = torch.load(args.distances, map_location=device)
+    else:
+        distances = None
+
     print("Calculating edges...")
-    distances, edge_index = get_edge_index(node_features)
+    distances, edge_index = get_edge_index(node_features, distances=distances, threshold=args.threshold)
     edge_index = edge_index.t().contiguous().to(device)
-    print("Edge index shape:", edge_index.shape)
+    print("Edge index shape:", edge_index.shape, "\n")
 
     # 11 answers per questions
     idx = np.arange(len(full_dataset)) * 11
@@ -74,6 +84,7 @@ if __name__ == "__main__":
     data.test_idx = torch.tensor(test_idx, dtype=torch.long)
 
     print("Final dataloader:", data)
+    print("Saved graph and distances in ", args.path)
 
-    torch.save(data, args.path + 'graph.pt')
-    torch.save(distances, args.path + 'distances.pt')
+    torch.save(data, args.path + "graph.pt")
+    torch.save(distances, args.path + "distances.pt")

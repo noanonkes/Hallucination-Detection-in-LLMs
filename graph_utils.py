@@ -46,7 +46,7 @@ def get_distances(node_features):
     return distances
 
 
-def get_edge_index(node_features, distances=None, threshold=.9):
+def get_edge_index(node_features, distances=None, threshold=.85):
     """
     If the cosine similarity between two node features is greater than 
     the threshold, they will be connected via an edge.
@@ -63,7 +63,7 @@ def get_edge_index(node_features, distances=None, threshold=.9):
 
 
 def train_loop(data, model, loss_func, optimizer):
-    """Train a GNN model and return the trained model."""
+    """Train a GAT model."""
 
     model.train()
 
@@ -78,20 +78,26 @@ def train_loop(data, model, loss_func, optimizer):
   
     return loss.item()
 
-def val_loop(data, model, loss_func, metric, acc):
-    """Validate a GNN model and return the trained model."""
+
+def val_loop(data, model, loss_func, metric, acc, mse):
+    """Validate a GAT model."""
 
     model.eval()
 
     metric.reset()
     acc.reset()
+    mse.reset()
     
     with torch.no_grad():
         out = model(data)
 
         loss = loss_func(out[data.val_idx], data.y[data.val_idx].float())
 
-        metric.update(out[data.val_idx].sigmoid(), data.y[data.val_idx])
-        acc.update(out[data.val_idx].sigmoid(), data.y[data.val_idx])
+        # do not need these to be on GPU, save some space for graph :)
+        out_val, y_val = out[data.val_idx].detach().cpu(), data.y[data.val_idx].float().detach().cpu()
 
-    return loss.item(), metric.compute(), acc.compute()
+        metric.update(out_val.sigmoid(), y_val)
+        acc.update(out_val.sigmoid(), y_val)
+        mse.update(out_val.sigmoid(), y_val)
+
+    return loss.item(), metric.compute(), acc.compute(), mse.compute()
