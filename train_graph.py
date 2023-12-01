@@ -1,8 +1,8 @@
 import torch, argparse
 from torcheval.metrics import MultilabelAccuracy, MultilabelAUPRC, MeanSquaredError
+from torch_geometric.nn import GAT
 
 import graph_utils
-from GAT import GAT
 
 from os.path import join as path_join
 
@@ -26,6 +26,8 @@ if __name__ == "__main__":
                         help='Which optimizer to use for training')
     parser.add_argument('--learning-rate', type=float, default=1e-3,
                         help='Learning rate for the optimizer')
+    parser.add_argument('--batch-size', type=int, default=None,
+                        help='Batch size for graph training')
     args = parser.parse_args()
 
     # for reproducibility
@@ -44,11 +46,25 @@ if __name__ == "__main__":
 
     use_tqdm = not args.no_progress_bar
 
-    model = GAT()
-    model.to(device)
-
+    # load graph
     graph = torch.load(args.path + "graph.pt", map_location=device)
     graph.to(device)
+
+    # define model
+    in_channels = graph.num_features
+    hidden_channels = 64
+    num_layers = 2
+    out_channels = graph.num_classes
+    gat = GAT(in_channels, hidden_channels, num_layers, out_channels, v2=False, act=nn.functional.leaky_relu)
+    gat.to(device)
+
+    # if batch size is given, get batch indices
+    if args.batch_size is not None:
+        batch_size = 3 # because their data.x.shape[0] is almost prime with the exception of 3
+        number_of_nodes = graph.x.shape[0]
+        batch_indices = torch.arange(number_of_nodes) // 3 
+    else:
+        batch_indices = None
 
     # cross entropy loss -- w/ logits
     loss_func = torch.nn.BCEWithLogitsLoss()
@@ -60,9 +76,9 @@ if __name__ == "__main__":
 
     # optimizer; change
     if args.optimizer == "SGD":
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
+        optimizer = torch.optim.SGD(gat.parameters(), lr=args.learning_rate, momentum=0.9)
     elif args.optimizer == "Adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+        optimizer = torch.optim.Adam(gat.parameters(), lr=args.learning_rate)
     else:
         # uhh, that should be impossible
         ...
@@ -71,8 +87,8 @@ if __name__ == "__main__":
 
     for i in range(args.epochs):
 
-        train_loss = graph_utils.train_loop(graph, model, loss_func, optimizer)
-        val_loss, val_metric, val_acc, val_mse = graph_utils.val_loop(graph, model, loss_func, metric, acc, mse)
+        train_loss, model_output = graph_utils.train_loop(graph, gat, loss_func, optimizer, batch_indices)
+        val_loss, val_metric, val_acc, val_mse = graph_utils.val_loop(graph, model_output, loss_func, metric, acc, mse)
 
         print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}')
         print('Val metric: ', val_metric.item(), '\tVal accuracy: ', val_acc.item(), '\tVal MSE: ', val_mse.item())
@@ -80,6 +96,6 @@ if __name__ == "__main__":
         if best_val < val_mse.item():
             best_val = val_mse.item()
             save = {
-            'state_dict': model.state_dict(),
+            'state_dict': gat.state_dict(),
             }
             torch.save(save, path_join(args.output_dir, f"GAT_{i}.pt"))

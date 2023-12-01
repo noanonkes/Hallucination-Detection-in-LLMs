@@ -62,34 +62,35 @@ def get_edge_index(node_features, distances=None, threshold=.85):
     return distances, edge_index
 
 
-def train_loop(data, model, loss_func, optimizer):
-    """Train a GAT model."""
+def train_loop(data, model, loss_func, optimizer, batch_indices=None):
+    """Train a GAT model for a single epoch."""
 
     model.train()
 
     optimizer.zero_grad()
 
-    out = model(data)
+    out = model(data.x, data.edge_index, batch=batch_indices)
 
     loss = loss_func(out[data.train_idx], data.y[data.train_idx].float())
     loss.backward()
 
     optimizer.step()
   
-    return loss.item()
+    return loss.item(), out
 
 
-def val_loop(data, model, loss_func, metric, acc, mse):
-    """Validate a GAT model."""
-
-    model.eval()
+def val_loop(data, out, loss_func, metric, acc, mse):
+    """
+    Validate a GAT model for a single epoch.
+    Do not need model here, because in the train loop it already
+    gave output for all data, so use that instead of re-calculating.
+    """
 
     metric.reset()
     acc.reset()
     mse.reset()
     
     with torch.no_grad():
-        out = model(data)
 
         loss = loss_func(out[data.val_idx], data.y[data.val_idx].float())
 
