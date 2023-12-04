@@ -1,6 +1,9 @@
 import torch
-from tqdm import tqdm
 import torch.nn.functional as F
+from torch_geometric.nn import GAT
+
+from GAT import GAT as ManualGAT
+
 
 def get_embeddings(model, tokenizer, dataloader, device):
     """
@@ -61,6 +64,44 @@ def get_edge_index(node_features, distances=None, threshold=.85):
 
     return distances, edge_index
 
+def get_model(in_channels, out_channels, hidden_channels=32, activation=F.leaky_relu,
+              v2 = False, in_head=2, out_head=1, dropout=0., manual=True, num_layers=2):
+    if manual:
+        return ManualGAT(n_in=in_channels, hid=hidden_channels,
+                     in_head=in_head, out_head=out_head, 
+                     n_classes=out_channels, dropout=dropout, 
+                     activation=activation, v2=v2)
+    else:
+        return GAT(in_channels, hidden_channels, num_layers, out_channels, v2=v2, act=activation)
+
+
+def frequency(graph, model_output):
+    freq_matrix = torch.zeros((4, 4), device=graph.y.device)
+    # print("Validation output\n", out_val, "\nTargets\n", y_val)
+    for i, output in enumerate(model_output[graph.train_idx]):
+        round_out = output.sigmoid().round()
+        true_class = torch.sum(graph.y[graph.train_idx][i])
+        if all(round_out == torch.tensor([1.,1.,1.], device=graph.y.device)):
+            freq_matrix[true_class, 3] += 1
+        elif all(round_out == torch.tensor([1.,1.,0.], device=graph.y.device)):
+            freq_matrix[true_class, 2] += 1
+        elif all(round_out == torch.tensor([1.,0.,0.], device=graph.y.device)):
+            freq_matrix[true_class, 1] += 1
+        elif all(round_out == torch.tensor([0.,0.,0.], device=graph.y.device)):
+            freq_matrix[true_class, 0] += 1
+
+    return freq_matrix.long()
+
+def get_optimizer(optimizer, model, lr):
+    if optimizer == "SGD":
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    elif optimizer == "Adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)
+    else:
+        # uhh, that should be impossible
+        ...
+    return optimizer
+
 
 def train_loop(data, model, loss_func, optimizer, batch_indices=None):
     """Train a GAT model for a single epoch."""
@@ -79,7 +120,7 @@ def train_loop(data, model, loss_func, optimizer, batch_indices=None):
     return loss.item(), out
 
 
-def val_loop(data, out, loss_func, metric, acc, mse):
+def val_loop(data, out, loss_func, metric, acc, mse, recall):
     """
     Validate a GAT model for a single epoch.
     Do not need model here, because in the train loop it already
@@ -101,4 +142,4 @@ def val_loop(data, out, loss_func, metric, acc, mse):
         acc.update(out_val.sigmoid(), y_val)
         mse.update(out_val.sigmoid(), y_val)
 
-    return loss.item(), metric.compute(), acc.compute(), mse.compute()
+    return loss.item(), metric.compute(), acc.compute(), mse.compute(), recall(out_val.sigmoid(), y_val)

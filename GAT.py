@@ -1,5 +1,6 @@
 import torch.nn.functional as F
-from torch_geometric.nn import GATv2Conv
+from torch.nn import Linear
+from torch_geometric.nn import GATv2Conv, GATConv
 import torch
 
 
@@ -13,20 +14,36 @@ class GAT(torch.nn.Module):
         - try dropedge
         - different GAT layers
     """
-    def __init__(self, n_in=768, hid=8, in_head=2, out_head=1, n_classes=3):
+    def __init__(self, n_in=768, hid=64, in_head=2, out_head=1, n_classes=3, dropout=0., activation=None, v2=False):
         super(GAT, self).__init__()        
         
-        self.conv1 = GATv2Conv(n_in, hid, heads=in_head, dropout=0.6)
-        self.conv2 = GATv2Conv(hid*in_head, n_classes, concat=False,
-                             heads=out_head, dropout=0.6)
+        self.linear = Linear(n_in, hid)
+        if v2:
+            self.conv1 = GATv2Conv(hid, hid//2, heads=in_head, dropout=dropout)
+            self.conv2 = GATv2Conv((hid//2) * in_head, n_classes, concat=False,
+                             heads=out_head, dropout=dropout)
+        else:
+            self.conv1 = GATConv(hid, hid//2, heads=in_head, dropout=dropout)
+            self.conv2 = GATConv((hid//2) * in_head, n_classes, concat=False,
+                                heads=out_head, dropout=dropout)
+        self.activation = activation
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-                
-        x = F.dropout(x, p=0.6, training=self.training)
+    def forward(self, x, edge_index, batch=None):
+        """Need the batch variable for it to work as predefined GAT model."""
+        
+        # reduce dimensionality of node features
+        x = self.linear(x)
+
+        if self.activation is not None:
+            x = self.activation(x)
+
+        # first GAT layer
         x = self.conv1(x, edge_index)
-        x = F.elu(x)
-        x = F.dropout(x, p=0.6, training=self.training)
+
+        if self.activation is not None:
+            x = self.activation(x)
+
+        # second GAT layer
         x = self.conv2(x, edge_index)
         
         return x
