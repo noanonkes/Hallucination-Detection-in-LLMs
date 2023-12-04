@@ -107,7 +107,8 @@ class MisinformationMLP(nn.Module):
             nn.ReLU(),
             nn.Linear(s_in // 2, s_in // 3),
             nn.ReLU(),
-            nn.Linear(s_in // 3, s_out)
+            nn.Linear(s_in // 3, s_out),
+            nn.Sigmoid()
         )
 
     def forward(self, X):

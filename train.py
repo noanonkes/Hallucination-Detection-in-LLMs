@@ -37,17 +37,18 @@ def main(data_dir, output_dir, model_name, model_embed, optimizer_name, lr, batc
     embed = BertModel.from_pretrained(model_embed)
     embed.to(device)
 
-    # load the data from root folder
+    # Load the data from root folder
     full_dataset = SentenceLabelDataset(data_dir)
     train_size = int(len(full_dataset) * 0.7)
     val_size = int(len(full_dataset) * 0.1)
     test_size = len(full_dataset) - train_size - val_size
 
-    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
+    train_data, val_data, test_data = torch.utils.data.random_split(full_dataset, [train_size, val_size, test_size])
 
-    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=4)
-    val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=4)
-
+    train_loader = DataLoader(train_data, batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_data, batch_size, shuffle=False, num_workers=4)
+    test_loader = DataLoader(test_data, batch_size, shuffle=False, num_workers=4)
+    
     # cross entropy loss -- w/ logits
     loss_func = torch.nn.BCEWithLogitsLoss()
 
@@ -66,8 +67,8 @@ def main(data_dir, output_dir, model_name, model_embed, optimizer_name, lr, batc
     best_val = -np.inf
 
     for i in range(epochs):
-        train_loss = utils.train_loop(train_dataloader, model, embed, tokenizer, loss_func, optimizer, device, use_tqdm)
-        val_loss, val_metric, val_acc = utils.val_loop(val_dataloader, model, embed, tokenizer, loss_func, device, metric, acc, use_tqdm=use_tqdm)
+        train_loss = utils.train_loop(train_loader, model, embed, tokenizer, loss_func, optimizer, device, use_tqdm)
+        val_loss, val_metric, val_acc = utils.val_loop(val_loader, model, embed, tokenizer, loss_func, device, metric, acc, use_tqdm=use_tqdm)
         print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}')
         print('Val metric: ', val_metric.item(), '\tVal accuracy: ', val_acc.item())
 
@@ -93,14 +94,14 @@ if __name__ == '__main__':
     parser.add_argument("--model_embed", type=str, default="bert-base-uncased",
                         help="Name of model used to embed sentences")
 
-    parser.add_argument('--optimizer_name', type=str, default="Adam",
+    parser.add_argument('--optimizer_name', type=str, default="SGD",
                         choices=["SGD", "Adam"],
                         help='Which optimizer to use for training')
     parser.add_argument('--lr', type=float, default=0.01,
                         help='Learning rate for the optimizer')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Number of sentences to use in a batch')
-    parser.add_argument('--epochs', type=int, default=3,
+    parser.add_argument('--epochs', type=int, default=10,
                         help='Number of epochs to train the model')
 
     parser.add_argument('--use_cuda', action='store_true', default=True,

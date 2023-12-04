@@ -45,10 +45,10 @@ class SentenceLabelDataset(Dataset):
         Returns:
             numpy.ndarray: Encoded vector representation of the label.
         """
-        cat2vec = np.array([[0,0,0],
-                            [1,0,0],
-                            [1,1,0],
-                            [1,1,1]])
+        cat2vec = np.array([[0.,0.,0.],
+                            [1.,0.,0.],
+                            [1.,1.,0.],
+                            [1.,1.,1.]])
         return cat2vec[idx]
     
 
@@ -80,8 +80,8 @@ class SentenceLabelDataset(Dataset):
         answer = self.q_data.iloc[idx]['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
         
         # Find answers in nc_data and wc_data corresponding to the query qid
-        nc_answers_df = self.nc_data[self.nc_data['qid'] == idx]
-        wc_answers_df = self.wc_data[self.wc_data['qid'] == idx]
+        nc_answers_df = self.nc_data.loc[self.nc_data['qid'] == idx]
+        wc_answers_df = self.wc_data.loc[self.wc_data['qid'] == idx]
         
         # Get answers and labels from nc_data
         nc_answers = nc_answers_df['ans'].tolist()
