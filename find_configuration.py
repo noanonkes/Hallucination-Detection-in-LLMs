@@ -16,6 +16,7 @@ EPOCHS = 5
 MANUAL = True
 BATCH = None
 OUTPUT = "weights/" # where to save model weights to
+DATA = "data/"
 
 def write_to_summary(writer, model_config, i, train_loss, val_loss, val_metric, val_acc, val_mse):
     writer.add_scalar(f"Loss/train_{model_config}", train_loss, i)
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # load the graph
-    graph = torch.load("data/graph.pt", map_location=device)
+    graph = torch.load(path_join(DATA, "graph.pt"), map_location=device)
     graph.to(device)
 
     in_channels = graph.num_features

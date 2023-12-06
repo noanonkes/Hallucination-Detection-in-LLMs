@@ -45,5 +45,11 @@ class GAT(torch.nn.Module):
 
         # second GAT layer
         x = self.conv2(x, edge_index)
+
+        # DO THIS HERE?
+        # get predictions
+        # x = x.sigmoid().round()
+        # final_one = (x==1).nonzero(as_tuple=True)[0][-1]
+        # x[:final_one+1] = 1.
         
         return x
