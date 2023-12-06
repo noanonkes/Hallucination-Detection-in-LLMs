@@ -31,9 +31,20 @@ class SentenceLabelDataset(Dataset):
             csv_file (str): Path to the CSV file containing sentences and labels.
             limit (int, optional): Number of samples to use from the dataset (for debugging or limiting dataset size).
         """
-        self.q_data = pd.read_json(path + 'sampled_data.json', lines=True)
-        self.nc_data = pd.read_csv(path + 'generated/no_context.csv')
-        self.wc_data = pd.read_csv(path + 'generated/with_context.csv')
+        try:
+            self.q_data = pd.read_json(path + 'sampled_data.json', lines=True)
+            nc_data = pd.read_csv(path + '/generated/no_context.csv')
+            wc_data = pd.read_csv(path + '/generated/with_context.csv')
+            
+        except FileNotFoundError as e:
+            print(f"File not found: {e.filename}")
+            raise
+        
+        self.nc_ans = nc_data.groupby('qid')['ans'].apply(list).tolist()
+        self.nc_label = nc_data.groupby('qid')['label'].apply(list).tolist()
+        
+        self.wc_ans = wc_data.groupby('qid')['ans'].apply(list).tolist()
+        self.wc_label = wc_data.groupby('qid')['label'].apply(list).tolist()
 
     def rewrite_label(self, idx):
         """
@@ -79,17 +90,13 @@ class SentenceLabelDataset(Dataset):
         query = self.q_data.iloc[idx]['data']['paragraphs'][0]['qas'][0]['question']
         answer = self.q_data.iloc[idx]['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
         
-        # Find answers in nc_data and wc_data corresponding to the query qid
-        nc_answers_df = self.nc_data.loc[self.nc_data['qid'] == idx]
-        wc_answers_df = self.wc_data.loc[self.wc_data['qid'] == idx]
-        
         # Get answers and labels from nc_data
-        nc_answers = nc_answers_df['ans'].tolist()
-        nc_labels = nc_answers_df['label'].tolist()
+        nc_answers = self.nc_ans[idx]
+        nc_labels = self.nc_label[idx]
         
         # Get answers and labels from wc_data
-        wc_answers = wc_answers_df['ans'].tolist()
-        wc_labels = wc_answers_df['label'].tolist()
+        wc_answers = self.wc_ans[idx]
+        wc_labels = self.wc_label[idx]
 
         all_answers = [answer] + nc_answers + wc_answers
         all_labels = [3] + nc_labels + wc_labels

@@ -20,4 +20,4 @@ eval "$(conda shell.bash hook)"
 conda activate ir2
 
 # Run executable
-srun python train.py --use_cuda --batch_size 1 --epochs 1
+srun python train.py --use_cuda --batch_size 1 --epochs 5 --model_name pca

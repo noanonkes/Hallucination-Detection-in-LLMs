@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertModel
 
 import utils
-from baselines import MisinformationMLP, MisinformationCrossEncoder
+from baselines import MisinformationMLP, MisinformationCrossEncoder, MisinformationPCA
 from dataloader import SentenceLabelDataset
 
 from os.path import join as path_join
@@ -29,7 +29,17 @@ def main(data_dir, output_dir, model_name, model_embed, optimizer_name, lr, batc
     device = torch.device("cuda") if use_cuda and torch.cuda.is_available() else torch.device("cpu")
 
     # Instantiate model
-    model = MisinformationMLP(768, 3) if model_name == "mlp" else MisinformationCrossEncoder()
+    if model_name == "mlp":
+        model = MisinformationMLP(768, 3)
+        reduce = False
+    elif model_name == "cross_encoder": 
+        model = MisinformationCrossEncoder()
+        reduce = False
+    elif model_name == "pca":
+        model  = MisinformationPCA()
+        reduce = True
+    else:
+        raise ValueError("Unsupported model type.")
     model.to(device)
 
     # Load pre-trained BERT model and tokenizer
@@ -67,8 +77,8 @@ def main(data_dir, output_dir, model_name, model_embed, optimizer_name, lr, batc
     best_val = -np.inf
 
     for i in range(epochs):
-        train_loss = utils.train_loop(train_loader, model, embed, tokenizer, loss_func, optimizer, device, use_tqdm)
-        val_loss, val_metric, val_acc = utils.val_loop(val_loader, model, embed, tokenizer, loss_func, device, metric, acc, use_tqdm=use_tqdm)
+        train_loss = utils.train_loop(train_loader, model, embed, tokenizer, loss_func, optimizer, device, use_tqdm, reduce)
+        val_loss, val_metric, val_acc = utils.val_loop(val_loader, model, embed, tokenizer, loss_func, device, metric, acc, use_tqdm, reduce)
         print(f'Epoch: {i}\n\ttrain: {train_loss}\n\tval: {val_loss}')
         print('Val metric: ', val_metric.item(), '\tVal accuracy: ', val_acc.item())
 
@@ -89,7 +99,7 @@ if __name__ == '__main__':
                         help="Path to save model weights to")
 
     parser.add_argument('--model_name', type=str, default='mlp',
-                        choices=["mlp", "cross_encoder"],
+                        choices=["mlp", "cross_encoder", "pca"],
                         help='Model type to train and evaluate.')
     parser.add_argument("--model_embed", type=str, default="bert-base-uncased",
                         help="Name of model used to embed sentences")
@@ -99,7 +109,7 @@ if __name__ == '__main__':
                         help='Which optimizer to use for training')
     parser.add_argument('--lr', type=float, default=0.01,
                         help='Learning rate for the optimizer')
-    parser.add_argument('--batch_size', type=int, default=16,
+    parser.add_argument('--batch_size', type=int, default=1,
                         help='Number of sentences to use in a batch')
     parser.add_argument('--epochs', type=int, default=10,
                         help='Number of epochs to train the model')
