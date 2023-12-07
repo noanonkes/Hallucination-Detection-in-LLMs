@@ -5,6 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 import graph_utils
 from os.path import join as path_join
 from itertools import product
+import numpy as np
 
 class SimCLR(nn.Module):
     """
@@ -121,8 +122,6 @@ if __name__ == "__main__":
     print("Train dataset size:", len(train_dataset))
     print("Validate dataset size:", len(val_dataset))
 
-    # contrastive loss function
-    loss_func = SimCLR(device=device)
 
     # find configuration that has lowest loss
     nlayers = [1, 2] # number of layers
@@ -130,27 +129,32 @@ if __name__ == "__main__":
     optimizers = ["SGD", "Adam"]
     learning_rates = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
     batch_sizes = [32, 64, 128, 256]
+    temps = [0.07, 0.1, 0.2]
     combinations = product(nlayers, activations,
-                           optimizers, learning_rates, batch_sizes)
+                           optimizers, learning_rates, batch_sizes,
+                           temps)
     
-    for n, activation, optimizer, lr, batch_size in combinations:
+    for combi, (n, activation, optimizer, lr, batch_size, temp) in enumerate(combinations):
         # do not run if n layers = 1 -> no activation function
         if n == 1 and activation is not None:
             continue
         
         # for every new configuration, empty cache
         torch.cuda.empty_cache()
+
+        # contrastive loss function with specific temperature
+        loss_func = SimCLR(device=device, temperature=temp)
         
-        # we also want to test different batch sizes
+        # test different batch sizes
         train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
         val_loader = DataLoader(val_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
 
         if activation is not None:
-            act_name = activation.__name__
+            act_name = activation._get_name()
         else:
             act_name = None
 
-        config = f"n_{n}_act_{act_name}_opt_{optimizer}_lr_{lr}_bs_{batch_size}"
+        config = f"n_{n}_act_{act_name}_opt_{optimizer}_lr_{lr}_bs_{batch_size}_t_{temp}"
         print(f"Configuration:\n\t{config}")
 
         # create model according to the amount of layers and activation function
@@ -163,13 +167,17 @@ if __name__ == "__main__":
         model = nn.Sequential(*layers)
         model.to(device)
 
+        # different optimizers with different learning rates
         optimizer = graph_utils.get_optimizer(optimizer, model, lr)
         
         best_val = float("inf")
+        l_train, l_val = [], []
         for i in range(args.epochs):
             train_loss = train_loop(train_loader, model, loss_func, optimizer, device)
             val_loss = val_loop(val_loader, model, loss_func, device)
 
+            l_train.append(train_loss)
+            l_val.append(val_loss)
             if best_val > val_loss:
                 best_val = val_loss
                 best_train = train_loss
@@ -178,5 +186,7 @@ if __name__ == "__main__":
                 'state_dict': model.state_dict(),
                 }
 
-        print(f'\tBest epoch: {best_i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}')
+        print(f'\tBest epoch: {best_i}\n\t\ttrain loss: {best_train}\n\t\tval loss: {best_val}')
+        worst_i = np.argmax(l_val)
+        print(f'\tWorst epoch: {worst_i}\n\t\ttrain loss: {l_train[worst_i]}\n\t\tval loss: {l_val[worst_i]}')
         torch.save(save, path_join(args.output_dir, f"{config}_{best_i}.pt"))                 
