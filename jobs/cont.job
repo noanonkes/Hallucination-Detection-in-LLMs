@@ -3,7 +3,7 @@
 #SBATCH --job-name=CONT
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
-#SBATCH --time=02:00:00
+#SBATCH --time=05:00:00
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --gpus=1
