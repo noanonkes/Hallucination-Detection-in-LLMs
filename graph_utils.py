@@ -137,11 +137,21 @@ def val_loop(data, out, loss_func, metric, acc, mse, recall):
         # do not need these to be on GPU, save some space for graph :)
         out_val, y_val = out[data.val_idx].detach().cpu().sigmoid().round(), data.y[data.val_idx].float().detach().cpu()
 
-        for i in torch.nonzero(out_val==1):
-            out_val[:i[0], :i[1]] = 1
+        # forcing the labels to adhere to possible labels!
+        new_out = torch.empty_like(out_val)
+        for i, output in enumerate(out_val):
+            round_out = output.sigmoid().round()
+            if round_out[-1] == 1.:
+                new_out[i] = torch.tensor([1,1,1], dtype=y_val.dtype)
+            elif round_out[-2] == 1.:
+                new_out[i] = torch.tensor([1,1,0], dtype=y_val.dtype)
+            elif round_out[-3] == 1.:
+                new_out[i] = torch.tensor([1,0,0], dtype=y_val.dtype)
+            elif round_out.sum() == 0.:
+                new_out[i] = torch.tensor([0,0,0], dtype=y_val.dtype)
 
-        metric.update(out_val, y_val)
-        acc.update(out_val, y_val)
-        mse.update(out_val, y_val)
+        metric.update(new_out, y_val)
+        acc.update(new_out, y_val)
+        mse.update(new_out, y_val)
 
-    return loss.item(), metric.compute(), acc.compute(), mse.compute(), recall(out_val, y_val)
+    return loss.item(), metric.compute(), acc.compute(), mse.compute(), recall(new_out, y_val)

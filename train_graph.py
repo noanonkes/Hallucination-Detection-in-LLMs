@@ -117,8 +117,9 @@ if __name__ == "__main__":
             "state_dict": gat.state_dict(),
             }
     
+    print("\nThe best performing epoch was:", best_i)
     freq_matrix_train = graph_utils.frequency(graph, best_model_output)
-    print("\nTotal train samples:", len(graph.y[graph.train_idx]))
+    print("Total train samples:", len(graph.y[graph.train_idx]))
     print("Total frequencies", int(torch.sum(freq_matrix_train).detach().cpu()))
     print(freq_matrix_train, "\n")
 
