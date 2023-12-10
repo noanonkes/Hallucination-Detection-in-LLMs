@@ -25,4 +25,18 @@ EXEC_FILE=$SOURCE_FOLDER/train_graph.py
 # Run executable
 srun python -u $EXEC_FILE \
 	--use-cuda \
-    --own-gat
+    --own-gat \
+    --epochs 500 \
+    --pt-epoch 950
+
+srun python -u $EXEC_FILE \
+	--use-cuda \
+    --own-gat \
+    --epochs 500 \
+    --pt-epoch 435
+
+srun python -u $EXEC_FILE \
+	--use-cuda \
+    --own-gat \
+    --epochs 500 \
+    --pt-epoch 978

@@ -1,6 +1,5 @@
-import torch.nn.functional as F
 from torch.nn import Linear
-from torch_geometric.nn import GATv2Conv, GATConv
+from torch_geometric.nn import GATConv
 import torch
 
 
@@ -14,34 +13,29 @@ class GAT(torch.nn.Module):
         - try dropedge
         - different GAT layers
     """
-    def __init__(self, n_in=768, hid=64, in_head=2, out_head=1, n_classes=3, dropout=0., activation=None, v2=False):
+    def __init__(self, embedder, n_in=768, hid=32, in_head=2, out_head=1, n_classes=3, dropout=0.):
         super(GAT, self).__init__()        
         
-        self.linear = Linear(n_in, hid)
-        if v2:
-            self.conv1 = GATv2Conv(hid, hid//2, heads=in_head, dropout=dropout)
-            self.conv2 = GATv2Conv((hid//2) * in_head, n_classes, concat=False,
-                             heads=out_head, dropout=dropout)
-        else:
-            self.conv1 = GATConv(hid, hid//2, heads=in_head, dropout=dropout)
-            self.conv2 = GATConv((hid//2) * in_head, n_classes, concat=False,
-                                heads=out_head, dropout=dropout)
-        self.activation = activation
+        if embedder[0].in_features != n_in:
+            raise ValueError("The embedder does not have the correct input dimension.")
+        
+        self.embedder = embedder
+        self.linear = Linear(embedder[-1].out_features, hid)
+        self.conv1 = GATConv(hid, hid//2, heads=in_head, dropout=dropout)
+        self.conv2 = GATConv((hid//2) * in_head, n_classes, concat=False,
+                            heads=out_head, dropout=dropout)
 
     def forward(self, x, edge_index, batch=None):
         """Need the batch variable for it to work as predefined GAT model."""
         
         # reduce dimensionality of node features
-        x = self.linear(x)
+        x = self.embedder(x)
 
-        if self.activation is not None:
-            x = self.activation(x)
+        # linear layer
+        x = self.linear(x)
 
         # first GAT layer
         x = self.conv1(x, edge_index)
-
-        if self.activation is not None:
-            x = self.activation(x)
 
         # second GAT layer
         x = self.conv2(x, edge_index)

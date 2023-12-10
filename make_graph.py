@@ -7,6 +7,8 @@ import argparse
 import numpy as np
 from dataloader import SentenceLabelDataset
 from graph_utils import *
+from os.path import join as path_join
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -20,8 +22,8 @@ if __name__ == "__main__":
                         help="Number of cores to use when loading the data")
     parser.add_argument("--threshold", type=float, default=0.85,
                         help="Similarity threshold to form an edge")
-    parser.add_argument("--distances", type=str, default=None,
-                        help="Path to distances matrix")
+    parser.add_argument("--distances", action="store_true", default=False,
+                        help="Use pre-calculated distances matrix")
     args = parser.parse_args()
 
     # for reproducibility
@@ -59,8 +61,8 @@ if __name__ == "__main__":
     print("Labels shape:", labels.shape, "\n")
 
     # if pre-calculated distances; use those
-    if args.distances is not None:
-        distances = torch.load(args.distances, map_location=device)
+    if args.distances:
+        distances = torch.load(path_join(args.path, "distances.pt"), map_location=device)
     else:
         distances = None
 
@@ -86,5 +88,5 @@ if __name__ == "__main__":
     print("Final dataloader:", data)
     print("Saved graph and distances in ", args.path)
 
-    torch.save(data, args.path + "graph.pt")
-    torch.save(distances, args.path + "distances.pt")
+    torch.save(data, path_join(args.path, "graph.pt"))
+    torch.save(distances, path_join(args.path, "distances.pt"))

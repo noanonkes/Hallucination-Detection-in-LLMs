@@ -47,9 +47,10 @@ class SimCLR(nn.Module):
             # don't make own examples similar to itself
             sim_copy[row_mask] = -1.
             comb_sim = torch.cat([pos_examples, sim_copy])
+            max_pos = pos_examples.argmax()
 
-            # we want the same labels examples have the highest similarity
-            sim_argsort = comb_sim.argsort(descending=True).argmin()
+            # get the position of the most similar positive pair
+            sim_argsort = torch.where(comb_sim.argsort(descending=True) == max_pos)[0][0]
             metric[row] = sim_argsort
         
         # Logging ranking metrics
@@ -193,4 +194,4 @@ if __name__ == "__main__":
         "state_dict": model.state_dict(),
         }
 
-        torch.save(save, path_join(args.output_dir, f"{config}_{i}.pt"))                 
+        torch.save(save, path_join(args.output_dir, f"embedder_{config}_{i}.pt"))                 
