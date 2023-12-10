@@ -2,14 +2,17 @@ import torch, argparse
 from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-import graph_utils
 from os.path import join as path_join
 from itertools import product
 import numpy as np
+from collections import defaultdict
 
 class SimCLR(nn.Module):
     """
-    Based on code from Deep Learning 1 tutorial by Phillip Lippe.
+    Based on code from SupContrast by the original authors.
+    https://github.com/HobbitLong/SupContrast/blob/master/losses.py
+    
+    And code from Deep Learning 1 tutorial by Phillip Lippe.
     https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/tutorial17/SimCLR.html
     """
     def __init__(self, device, temperature=0.07):
@@ -17,22 +20,44 @@ class SimCLR(nn.Module):
         self.temperature = temperature
         self.device = device
 
-    def forward(self, feats, labels):
+    def forward(self, feats, labels, logs, mode="train"):
         # Calculate cosine similarity
         cos_sim = F.cosine_similarity(feats[:,None,:], feats[None,:,:], dim=-1)
-        # Mask out cosine similarity to itself
-        self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=self.device)
-        cos_sim.masked_fill_(self_mask, 9e-15)
         
         # Find positive example -> where the labels are equal
         pos_mask = torch.eq(labels, labels.T).to(self.device)
+        # Mask out cosine similarity to itself
+        pos_mask.fill_diagonal_(False)
 
         # InfoNCE loss
         cos_sim = cos_sim / self.temperature
-        nll = -cos_sim[pos_mask] + torch.logsumexp(cos_sim, dim=-1)
+        nll = -cos_sim + torch.logsumexp(cos_sim, dim=-1)
+        nll = (pos_mask * nll).sum(-1) / pos_mask.sum(-1)
         nll = nll.mean()
 
-        return nll
+        # some extra metrics
+        metric = torch.empty((cos_sim.shape[0], ))
+        for row, sim in enumerate(cos_sim):
+            # positive examples for this row
+            row_mask = pos_mask[row]
+
+            sim_copy = sim.clone().detach()
+            pos_examples = sim_copy[row_mask]
+            
+            # don't make own examples similar to itself
+            sim_copy[row_mask] = -1.
+            comb_sim = torch.cat([pos_examples, sim_copy])
+
+            # we want the same labels examples have the highest similarity
+            sim_argsort = comb_sim.argsort(descending=True).argmin()
+            metric[row] = sim_argsort
+        
+        # Logging ranking metrics
+        logs[mode+"_acc_top1"].append((metric == 0).float().mean().item())
+        logs[mode+"_acc_top5"].append((metric < 5).float().mean().item())
+        logs[mode+"_acc_mean_pos"].append(1+metric.float().mean().item())
+
+        return nll, logs
 
 class SimpleDataset(Dataset):
     def __init__(self, X, y):
@@ -46,57 +71,58 @@ class SimpleDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-def train_loop(dataloader, model,loss_func, optimizer, device):
+def train_loop(dataloader, model, loss_func, optimizer, lr_scheduler, logs, device):
     model.train()
     epoch_loss = 0.
     for j, (embeddings, labels) in enumerate(dataloader):
-        optimizer.zero_grad()
 
         embeddings, labels = embeddings.to(device), labels.to(device)
 
-        labels = torch.sum(labels, axis=1)
+        labels = torch.sum(labels, axis=1, keepdim=True)
 
         feats = model(embeddings)
-        train_loss = loss_func(feats, labels)
+        train_loss, logs = loss_func(feats, labels, logs, mode="train")
 
+        optimizer.zero_grad()
         train_loss.backward()
         optimizer.step()
         
         epoch_loss += train_loss
+    lr_scheduler.step()
 
-    return epoch_loss.item() / j
+    return epoch_loss.item() / j, logs
 
 
-def val_loop(dataloader, model, loss_func, device):
+def val_loop(dataloader, model, loss_func, val_logs, device):
     model.eval()
     total_loss = 0.
     with torch.no_grad():
         for j, (embeddings, labels) in enumerate(dataloader):
             embeddings, labels = embeddings.to(device), labels.to(device)
 
-            labels = torch.sum(labels, axis=1)
+            labels = torch.sum(labels, axis=1, keepdim=True)
 
             with torch.no_grad():
                 feats = model(embeddings)
-                val_loss = loss_func(feats, labels)
+                val_loss, val_logs = loss_func(feats, labels, val_logs, mode="val")
                 total_loss += val_loss
 
-    return total_loss.item() / j
+    return total_loss.item() / j, val_logs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # command line args for specifying the situation
-    parser.add_argument('--use-cuda', action='store_true', default=False,
-                        help='Use GPU acceleration if available')
-    parser.add_argument('--path', type=str, default='data/',
+    parser.add_argument("--use-cuda", action="store_true", default=False,
+                        help="Use GPU acceleration if available")
+    parser.add_argument("--path", type=str, default="data/",
                         help="Path to the data folder")
-    parser.add_argument('--output_dir', type=str, default='weights/',
+    parser.add_argument("--output_dir", type=str, default="weights/",
                         help="Path to save model weights to")
-    parser.add_argument('--num-workers', type=int, default=4,
+    parser.add_argument("--num-workers", type=int, default=4,
                         help="Number of cores to use when loading the data")
-    parser.add_argument('--epochs', type=int, default=100,
-                        help='Number of epochs to train the model')
+    parser.add_argument("--epochs", type=int, default=1000,
+                        help="Number of epochs to train the model")
     args = parser.parse_args()
 
     # for reproducibility
@@ -109,9 +135,9 @@ if __name__ == "__main__":
 
     # some paramaters
     if args.use_cuda:
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     else:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
 
     # load graph
     graph = torch.load(path_join(args.path, "graph.pt"), map_location=device)
@@ -121,72 +147,50 @@ if __name__ == "__main__":
     val_dataset = SimpleDataset(graph.x[graph.val_idx], graph.y[graph.val_idx])
     print("Train dataset size:", len(train_dataset))
     print("Validate dataset size:", len(val_dataset))
-
-
-    # find configuration that has lowest loss
-    nlayers = [1, 2] # number of layers
-    activations = [nn.LeakyReLU(), nn.ReLU(), None]
-    optimizers = ["SGD", "Adam"]
-    learning_rates = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-    batch_sizes = [32, 64, 128, 256]
-    temps = [0.07, 0.1, 0.2]
-    combinations = product(nlayers, activations,
-                           optimizers, learning_rates, batch_sizes,
-                           temps)
+    # batch size is set to 256
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=256, drop_last=True)
+    val_loader = DataLoader(val_dataset, shuffle=True, batch_size=256, drop_last=True)
     
-    for combi, (n, activation, optimizer, lr, batch_size, temp) in enumerate(combinations):
-        # do not run if n layers = 1 -> no activation function
-        if n == 1 and activation is not None:
-            continue
-        
-        # for every new configuration, empty cache
-        torch.cuda.empty_cache()
+    activation = nn.ReLU()
+    lr = 1e-4 # optimizer
+    weight_decay = 1e-4 # lr scheduler
+    temp = 0.07 # loss
 
-        # contrastive loss function with specific temperature
-        loss_func = SimCLR(device=device, temperature=temp)
-        
-        # test different batch sizes
-        train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
-        val_loader = DataLoader(val_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
+    layers = [nn.Linear(768, 768), activation, nn.Linear(768, 128)]
+    model = nn.Sequential(*layers)
+    model.to(device)
+    
+    optimizer = torch.optim.AdamW(model.parameters(),
+                                lr=lr,
+                                weight_decay=weight_decay)
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                            T_max=args.epochs,
+                                                            eta_min=lr/50)
+    
+    train_logs = defaultdict(list)
+    val_logs = defaultdict(list)
+    
+    # empty cache
+    torch.cuda.empty_cache()
 
-        if activation is not None:
-            act_name = activation._get_name()
-        else:
-            act_name = None
+    # contrastive loss function with specific temperature
+    loss_func = SimCLR(device=device, temperature=temp)
+    
+    config = f"act_{activation._get_name()}_opt_AdamW_lr_{lr}_bs_{256}_t_{temp}"
+    print(f"Configuration:\n\t{config}")
 
-        config = f"n_{n}_act_{act_name}_opt_{optimizer}_lr_{lr}_bs_{batch_size}_t_{temp}"
-        print(f"Configuration:\n\t{config}")
+    for i in range(args.epochs):
+        train_loss, train_logs = train_loop(train_loader, model, loss_func, optimizer, lr_scheduler, train_logs, device)
+        val_loss, val_logs = val_loop(val_loader, model, loss_func, val_logs, device)
 
-        # create model according to the amount of layers and activation function
-        layers = [nn.Linear(768, 768)]
-        if activation is not None and n > 1:
-            layers.append(activation)
-        if n > 1:
-            layers.append(nn.Linear(768, 768))
+        print(f"Epoch {i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}")
+        for (t_key, t_value), (v_key, v_value) in zip(train_logs.items(), val_logs.items()):
+            print()
+            print(f"\t{t_key}: {torch.mean(torch.tensor(t_value[-60:]))}")
+            print(f"\t{v_key}: {torch.mean(torch.tensor(v_value[-60:]))}")
+        print()
+        save = {
+        "state_dict": model.state_dict(),
+        }
 
-        model = nn.Sequential(*layers)
-        model.to(device)
-
-        # different optimizers with different learning rates
-        optimizer = graph_utils.get_optimizer(optimizer, model, lr)
-        
-        best_val = float("inf")
-        l_train, l_val = [], []
-        for i in range(args.epochs):
-            train_loss = train_loop(train_loader, model, loss_func, optimizer, device)
-            val_loss = val_loop(val_loader, model, loss_func, device)
-
-            l_train.append(train_loss)
-            l_val.append(val_loss)
-            if best_val > val_loss:
-                best_val = val_loss
-                best_train = train_loss
-                best_i = i
-                save = {
-                'state_dict': model.state_dict(),
-                }
-
-        print(f'\tBest epoch: {best_i}\n\t\ttrain loss: {best_train}\n\t\tval loss: {best_val}')
-        worst_i = np.argmax(l_val)
-        print(f'\tWorst epoch: {worst_i}\n\t\ttrain loss: {l_train[worst_i]}\n\t\tval loss: {l_val[worst_i]}')
-        torch.save(save, path_join(args.output_dir, f"{config}_{best_i}.pt"))                 
+        torch.save(save, path_join(args.output_dir, f"{config}_{i}.pt"))                 
