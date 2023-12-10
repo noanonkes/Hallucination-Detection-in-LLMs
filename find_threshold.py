@@ -1,3 +1,11 @@
+"""
+Program to visually examine how the similarity threshold affects the
+connectiveness of the constructed graph. The program also shows the
+amount of isolated nodes and to which class they belong.
+
+Ideally, the range of node degrees is uniform, so without peaks of
+super connected, or super unconnected nodes. 
+"""
 import torch
 from torch_geometric.utils import degree
 from collections import Counter
