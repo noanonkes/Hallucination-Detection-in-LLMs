@@ -1,9 +1,10 @@
 import torch, argparse
-from torcheval.metrics import MultilabelAccuracy, MultilabelAUPRC
-from torchmetrics.classification import MultilabelRecall
-from torchmetrics import MeanSquaredError
+from torcheval.metrics import MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassRecall, BinaryRecall
 from torch_geometric.utils import remove_isolated_nodes
 
+from GAT import GAT
+
+import numpy as np
 import graph_utils
 
 from os.path import join as path_join
@@ -27,16 +28,12 @@ if __name__ == "__main__":
                         help="Which optimizer to use for training")
     parser.add_argument("--learning-rate", type=float, default=1e-3,
                         help="Learning rate for the optimizer")
-    parser.add_argument("--batch-size", type=int, default=None,
-                        help="Batch size for graph training")
-    parser.add_argument("--own-gat", action="store_true", default=False,
-                        help="Use own designed GAT in GAT.py folder")
     parser.add_argument("--pt-epoch", type=int, default=783,
                         help="Which epoch to use for the embedder weights")
     args = parser.parse_args()
 
     # for reproducibility
-    torch.manual_seed(42)
+    graph_utils.set_seed(42)
     
     print("STARTING...  setup:")
     print(args)
@@ -61,72 +58,74 @@ if __name__ == "__main__":
     in_channels = graph.num_features
     out_channels = graph.num_classes
     hidden_channels = 32
-    activation = None # only if manual = False
-    v2 = False # use GATConv or GATv2Conv
-    num_layers = 2 # only if manual = False
-    in_head = 2 # only if manual = True
-    out_head = 1 # only if manual = True
-    dropout = 0. # only if manual = True
-    manual = args.own_gat # use manually defined GAT
+    in_head = 2
+    out_head = 1
+    dropout = 0.
 
     embedder = torch.nn.Sequential(*[torch.nn.Linear(768, 768), torch.nn.ReLU(), torch.nn.Linear(768, 128)])
     embedder.load_state_dict(torch.load(path_join(args.output_dir, f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"), map_location=device)["state_dict"])
-
-    gat = graph_utils.get_model(embedder, in_channels, out_channels, hidden_channels, activation, v2, in_head,
-                                out_head, dropout, manual, num_layers)
+    gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
+                     in_head=in_head, out_head=out_head, 
+                     n_classes=out_channels, dropout=dropout)
     gat.to(device)
-
-    # if batch size is given, get batch indices
-    if args.batch_size is not None:
-        batch_size = args.batch_size
-        number_of_nodes = graph.x.shape[0]
-        batch_indices = torch.arange(number_of_nodes) // batch_size
-    else:
-        batch_indices = None
 
     # cross entropy loss -- w/ logits
     loss_func = torch.nn.BCEWithLogitsLoss()
 
-    # we needed to use this metric, probably only in validation
-    metric = MultilabelAUPRC(num_labels=3)
-    acc = MultilabelAccuracy()
-    mse = MeanSquaredError() # can also add num_outputs=3
-    macrorecall = MultilabelRecall(num_labels=3, average="macro")
+    # evaluation metrics
+    acc = MulticlassAccuracy(num_classes=4) # can also add average="macro" to do per class
+    conf = MulticlassConfusionMatrix(num_classes=4)
+    macro_recall = MulticlassRecall(num_classes=4, average="macro")
+    binary_recall = BinaryRecall()
 
     optimizer = graph_utils.get_optimizer(args.optimizer, gat, args.learning_rate)
 
-    # MSE, so lower is better! Recall, so higher is better!
-    best_val = 0.
-    # best_val = float("inf")
     for i in range(args.epochs):
 
-        train_loss, model_output = graph_utils.train_loop(graph, gat, loss_func, optimizer, batch_indices)
-        val_loss, val_metric, val_acc, val_mse, val_recall = graph_utils.val_loop(graph, model_output, loss_func, metric, acc, mse, macrorecall)
+        # Train epoch and valuation loss
+        train_loss, model_output = graph_utils.train_loop(graph, gat, loss_func, optimizer)
+        val_loss = loss_func(model_output[graph.val_idx], graph.y[graph.val_idx].float()).item()
 
+        # Rewrite the labels from vectors to integers
+        y_pred_train, y_train = graph_utils.rewrite_labels(model_output[graph.train_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.train_idx], dim=-1).long()
+        y_pred_val, y_val = graph_utils.rewrite_labels(model_output[graph.val_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.val_idx], dim=-1).long()
+
+        # Train and valuation confusion matrices
+        train_conf = graph_utils.confusion_matrix(conf, y_pred_train, y_train)
+        val_conf = graph_utils.confusion_matrix(conf, y_pred_val, y_val)
+
+        # Train and valuation accuracy
+        train_acc = graph_utils.accuracy(acc, y_pred_train, y_train)
+        val_acc = graph_utils.accuracy(acc, y_pred_val, y_val)
+
+        # Train and valuation macro recall
+        train_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_train, y_train)
+        val_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_val, y_val)
+
+        # Train and valuation binary recall
+        # all false statements stay false, the true stay true but now binary
+        binary_mask = torch.logical_or((y_pred_train == 0), (y_pred_train == 3))
+        y_binary_pred_train = y_pred_train[binary_mask]
+        y_binary_train = y_train[binary_mask]
+        train_binary_recall = graph_utils.binary_recall(binary_recall, y_binary_pred_train, y_binary_train)
+        
+        binary_mask = torch.logical_or((y_pred_val == 0), (y_pred_val == 3))
+        y_binary_pred_val = y_pred_val[binary_mask]
+        y_binary_val = y_val[binary_mask]
+        val_binary_recall = graph_utils.binary_recall(binary_recall, y_binary_pred_val, y_binary_val)
+
+        # Print train and valuation loss
         print(f"Epoch: {i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}")
-        print("\tval AUPRC: ", val_metric.item(), "\n\tval accuracy: ", val_acc.item(), "\n\tval MSE: ", val_mse.item(), "\n\tval recall: ", val_recall.item())
+        # Print train and valuation confusion matrices
+        print(f"\ttrain confusion matrix:\n\t{train_conf}\n\tval confusion matrix:\n\t{val_conf}")
+        # Print train and valuation accuracy
+        print(f"\ttrain accuracy: {train_acc}\n\tval accuracy: {val_acc}")
+        # Print train and valuation macro recall
+        print(f"\ttrain binary recall: {train_macro_recall}\n\tval macro recall: {val_macro_recall}")
+        # Print train and valuation binary recall
+        print(f"\ttrain binary recall: {train_binary_recall}\n\tval binary recall: {val_binary_recall}")
 
-        # MSE, so lower is better!
-        # if best_val > val_mse.item():
-        # Recall, so higher is better!
-        if best_val < val_recall.item() and i != 0:
-            best_val = val_recall.item()
-            best_i = i
-            best_model_output = model_output
-            save = {
+        save = {
             "state_dict": gat.state_dict(),
             }
-    
-    print("\nThe best performing epoch was:", best_i)
-    freq_matrix_train = graph_utils.frequency(graph, best_model_output)
-    print("Total train samples:", len(graph.y[graph.train_idx]))
-    print("Total frequencies", int(torch.sum(freq_matrix_train).detach().cpu()))
-    print(freq_matrix_train, "\n")
-
-    freq_matrix_val = graph_utils.frequency(graph, best_model_output, mode="val")
-    print("\nTotal val samples:", len(graph.y[graph.val_idx]))
-    print("Total frequencies", int(torch.sum(freq_matrix_val).detach().cpu()))
-    print(freq_matrix_val)
-
-    # save best model only
-    torch.save(save, path_join(args.output_dir, f"GAT_{best_i}.pt"))
+        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{i}.pt"))

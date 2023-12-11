@@ -3,9 +3,8 @@ from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from os.path import join as path_join
-from itertools import product
-import numpy as np
 from collections import defaultdict
+import graph_utils
 
 class SimCLR(nn.Module):
     """
@@ -55,6 +54,7 @@ class SimCLR(nn.Module):
         
         # Logging ranking metrics
         logs[mode+"_acc_top1"].append((metric == 0).float().mean().item())
+        logs[mode+"_acc_top2"].append((metric < 2).float().mean().item())
         logs[mode+"_acc_top5"].append((metric < 5).float().mean().item())
         logs[mode+"_acc_mean_pos"].append(1+metric.float().mean().item())
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # for reproducibility
-    torch.manual_seed(42)
+    graph_utils.set_seed(42)
     
     print("STARTING...  setup:")
     print(args)
@@ -190,8 +190,10 @@ if __name__ == "__main__":
             print(f"\t{t_key}: {torch.mean(torch.tensor(t_value[-60:]))}")
             print(f"\t{v_key}: {torch.mean(torch.tensor(v_value[-60:]))}")
         print()
+        
         save = {
         "state_dict": model.state_dict(),
         }
 
+        # Save every epoch!
         torch.save(save, path_join(args.output_dir, f"embedder_{config}_{i}.pt"))                 
