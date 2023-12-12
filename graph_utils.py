@@ -136,9 +136,28 @@ def rewrite_labels(labels):
             new_labels[i] = 0
     return new_labels
 
+
 def rewrite_labels_binary(labels):
-    "Assumes only label 0 to be false and all other positive labels to be true"
+    """
+    Converts a multi-class label tensor into a binary label tensor.
+
+    Assumes label 0 represents 'false' and all other positive labels represent 'true'.
+
+    Args:
+    - labels (tensor): Tensor containing multi-class labels.
+
+    Returns:
+    - binary_labels (tensor): Binary tensor where 0 represents 'false'
+      and 1 represents 'true' based on the original label tensor.
+
+    Example:
+    >>> original_labels = torch.tensor([0, 1, 2, 3, 2])
+    >>> rewrite_labels_binary(original_labels)
+    Output: tensor([0, 1, 1, 1, 1])
+    """
     return torch.where(labels == 0, 0, 1)
+
+
 
 def confusion_matrix(conf_metric, inputs, targets):
     """
@@ -228,6 +247,38 @@ def binary_recall(recall_metric, inputs, targets):
     recall_metric.reset()
     recall_metric.update(inputs, targets)
     return recall_metric.compute().item()
+
+
+def k_frame_agreement(inputs, targets, k=1):
+    """
+    Calculates the K-frame agreement metric between inputs and target labels.
+
+    The K-frame agreement metric measures the agreement between predicted labels
+    (inputs) and true labels (targets) within a tolerance range of K frames.
+
+    Args:
+    - inputs (tensor): Tensor containing the predicted labels.
+    - targets (tensor): Tensor containing the true labels.
+    - k (int, optional): The frame tolerance range. Defaults to 1.
+
+    Returns:
+    - agreement (tensor): A tensor representing the overall agreement
+      between inputs and targets within the K-frame tolerance range.
+
+    Example:
+    >>> predicted_labels = torch.tensor([1, 2, 3, 4, 5])
+    >>> true_labels = torch.tensor([2, 3, 4, 5, 6])
+    >>> k_frame_agreement(predicted_labels, true_labels, k=1)
+    Output: tensor(0.8000)
+    """
+    lower_bound = targets - k
+    upper_bound = targets + k
+    
+    correct_predictions = ((inputs >= lower_bound) & (inputs <= upper_bound)).float()
+
+    agreement = torch.mean(correct_predictions)
+    
+    return agreement
 
 
 def get_optimizer(optimizer, model, lr):

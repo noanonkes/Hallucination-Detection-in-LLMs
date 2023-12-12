@@ -100,12 +100,14 @@ if __name__ == "__main__":
     # Valuation macro recall
     macro_recall = graph_utils.macro_recall(macro_recall, y_pred, y)
 
+    # One frame agreement
+    ofa = graph_utils.k_frame_agreement(y_pred, y, k=1)
+
     # Train and valuation binary accuracy
     binary_mask = torch.logical_or((y == 0), (y == 3))
     y_binary = graph_utils.rewrite_labels_binary(y[binary_mask])
     y_pred_binary = graph_utils.rewrite_labels_binary(y_pred[binary_mask])
     binary_recall = graph_utils.binary_recall(binary_recall, y_pred_binary, y_binary)
-
 
     # Print valuation loss
     print(f"Loss: {loss}")
@@ -117,5 +119,6 @@ if __name__ == "__main__":
     print(f"Macro recall: {macro_recall}")
     # Print valuation binary accuracy
     print(f"Binary recall: {binary_recall}")
-
+    # Print valuation one frame agreement
+    print(f"One frame agreement: {ofa}")
  
