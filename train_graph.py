@@ -30,6 +30,10 @@ if __name__ == "__main__":
                         help="Learning rate for the optimizer")
     parser.add_argument("--pt-epoch", type=int, default=783,
                         help="Which epoch to use for the embedder weights")
+    parser.add_argument("--load-model", type=str, default="950_GAT_483.pt",
+                        help="GAT model weights to use.")
+    parser.add_argument("--save-model", action="store_true", default=False,
+                        help="Whether to save all model weights")
     args = parser.parse_args()
 
     # for reproducibility
@@ -67,13 +71,15 @@ if __name__ == "__main__":
     gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
                      in_head=in_head, out_head=out_head, 
                      n_classes=out_channels, dropout=dropout)
+    if args.load_model is not None:
+        gat.load_state_dict(torch.load(path_join(args.output_dir, args.load_model), map_location=device)["state_dict"])
     gat.to(device)
 
     # cross entropy loss -- w/ logits
     loss_func = torch.nn.BCEWithLogitsLoss()
 
     # evaluation metrics
-    acc = MulticlassAccuracy(num_classes=4) # can also add average="macro" to do per class
+    acc = MulticlassAccuracy(num_classes=4)
     conf = MulticlassConfusionMatrix(num_classes=4)
     macro_recall = MulticlassRecall(num_classes=4, average="macro")
     binary_recall = BinaryRecall()
@@ -102,30 +108,30 @@ if __name__ == "__main__":
         train_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_train, y_train)
         val_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_val, y_val)
 
-        # Train and valuation binary recall
-        # all false statements stay false, the true stay true but now binary
-        binary_mask = torch.logical_or((y_pred_train == 0), (y_pred_train == 3))
-        y_binary_pred_train = y_pred_train[binary_mask]
-        y_binary_train = y_train[binary_mask]
+        # Train and valuation binary accuracy
+        binary_mask = torch.logical_or((y_train == 0), (y_train == 3))
+        y_binary_train = graph_utils.rewrite_labels_binary(y_train[binary_mask])
+        y_binary_pred_train = graph_utils.rewrite_labels_binary(y_pred_train[binary_mask])
         train_binary_recall = graph_utils.binary_recall(binary_recall, y_binary_pred_train, y_binary_train)
         
-        binary_mask = torch.logical_or((y_pred_val == 0), (y_pred_val == 3))
-        y_binary_pred_val = y_pred_val[binary_mask]
-        y_binary_val = y_val[binary_mask]
+        binary_mask = torch.logical_or((y_val == 0), (y_val == 3))
+        y_binary_val = graph_utils.rewrite_labels_binary(y_val[binary_mask])
+        y_binary_pred_val = graph_utils.rewrite_labels_binary(y_pred_val[binary_mask])
         val_binary_recall = graph_utils.binary_recall(binary_recall, y_binary_pred_val, y_binary_val)
 
         # Print train and valuation loss
         print(f"Epoch: {i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}")
         # Print train and valuation confusion matrices
-        print(f"\ttrain confusion matrix:\n\t{train_conf}\n\tval confusion matrix:\n\t{val_conf}")
+        print(f"\ttrain confusion matrix:\n\t{train_conf.long()}\n\tval confusion matrix:\n\t{val_conf.long()}")
         # Print train and valuation accuracy
         print(f"\ttrain accuracy: {train_acc}\n\tval accuracy: {val_acc}")
         # Print train and valuation macro recall
-        print(f"\ttrain binary recall: {train_macro_recall}\n\tval macro recall: {val_macro_recall}")
-        # Print train and valuation binary recall
+        print(f"\ttrain macro recall: {train_macro_recall}\n\tval macro recall: {val_macro_recall}")
+        # Print train and valuation binary accuracy
         print(f"\ttrain binary recall: {train_binary_recall}\n\tval binary recall: {val_binary_recall}")
 
-        save = {
-            "state_dict": gat.state_dict(),
-            }
-        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{i}.pt"))
+        if args.save_model:
+            save = {
+                "state_dict": gat.state_dict(),
+                }
+            torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{i}.pt"))

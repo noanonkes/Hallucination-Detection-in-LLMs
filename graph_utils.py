@@ -136,6 +136,9 @@ def rewrite_labels(labels):
             new_labels[i] = 0
     return new_labels
 
+def rewrite_labels_binary(labels):
+    "Assumes only label 0 to be false and all other positive labels to be true"
+    return torch.where(labels == 0, 0, 1)
 
 def confusion_matrix(conf_metric, inputs, targets):
     """
@@ -189,6 +192,24 @@ def macro_recall(recall_metric, inputs, targets):
     recall_metric.reset()
     recall_metric.update(inputs, targets)
     return recall_metric.compute().item()
+
+
+def binary_accuracy(acc_metric, inputs, targets):
+    """
+    Computes binary accuracy metric based on predicted and target labels.
+
+    Args:
+    - recall_metric: Binary accuracy metric object.
+    - inputs (torch.Tensor): Predicted labels.
+    - targets (torch.Tensor): Target labels.
+
+    Returns:
+    - float: Computed binary accuracy value.
+    """
+
+    acc_metric.reset()
+    acc_metric.update(inputs, targets)
+    return acc_metric.compute().item()
 
 
 def binary_recall(recall_metric, inputs, targets):
