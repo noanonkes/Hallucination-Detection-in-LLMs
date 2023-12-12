@@ -4,7 +4,6 @@ from torch_geometric.utils import remove_isolated_nodes
 
 from GAT import GAT
 
-import numpy as np
 import graph_utils
 
 from os.path import join as path_join
@@ -66,8 +65,9 @@ if __name__ == "__main__":
     out_head = 1
     dropout = 0.
 
+    embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"
     embedder = torch.nn.Sequential(*[torch.nn.Linear(768, 768), torch.nn.ReLU(), torch.nn.Linear(768, 128)])
-    embedder.load_state_dict(torch.load(path_join(args.output_dir, f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"), map_location=device)["state_dict"])
+    embedder.load_state_dict(torch.load(path_join(args.output_dir, embedder_file), map_location=device)["state_dict"])
     gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
                      in_head=in_head, out_head=out_head, 
                      n_classes=out_channels, dropout=dropout)
@@ -86,6 +86,7 @@ if __name__ == "__main__":
 
     optimizer = graph_utils.get_optimizer(args.optimizer, gat, args.learning_rate)
 
+    best_recall = 0.
     for i in range(args.epochs):
 
         # Train epoch and valuation loss
@@ -130,7 +131,8 @@ if __name__ == "__main__":
         # Print train and valuation binary accuracy
         print(f"\ttrain binary recall: {train_binary_recall}\n\tval binary recall: {val_binary_recall}")
 
-        if args.save_model:
+        if macro_recall > best_recall and args.save_model:
+            best_recall = macro_recall            
             save = {
                 "state_dict": gat.state_dict(),
                 }
