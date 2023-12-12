@@ -27,9 +27,9 @@ if __name__ == "__main__":
                         help="Which optimizer to use for training")
     parser.add_argument("--learning-rate", type=float, default=1e-3,
                         help="Learning rate for the optimizer")
-    parser.add_argument("--pt-epoch", type=int, default=783,
+    parser.add_argument("--pt-epoch", type=int, default=950,
                         help="Which epoch to use for the embedder weights")
-    parser.add_argument("--load-model", type=str, default="950_GAT_483.pt",
+    parser.add_argument("--load-model", type=str, default=None,
                         help="GAT model weights to use.")
     parser.add_argument("--save-model", action="store_true", default=False,
                         help="Whether to save all model weights")
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         # Print train and valuation binary accuracy
         print(f"\ttrain binary recall: {train_binary_recall}\n\tval binary recall: {val_binary_recall}")
 
-        if macro_recall > best_recall and args.save_model:
+        if val_macro_recall > best_recall and args.save_model:
             best_recall = macro_recall            
             save = {
                 "state_dict": gat.state_dict(),
