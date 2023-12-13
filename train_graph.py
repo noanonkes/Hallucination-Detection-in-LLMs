@@ -1,9 +1,8 @@
 import torch, argparse
-from torcheval.metrics import MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassRecall, BinaryRecall
+from torcheval.metrics import MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassRecall, MulticlassPrecision, BinaryRecall
 from torch_geometric.utils import remove_isolated_nodes
 
 from GAT import GAT
-
 import graph_utils
 
 from os.path import join as path_join
@@ -59,14 +58,14 @@ if __name__ == "__main__":
 
     # define model
     in_channels = graph.num_features
-    out_channels = graph.num_classes
+    out_channels = graph.y.shape[1] # number of columns
     hidden_channels = 32
     in_head = 2
     out_head = 1
     dropout = 0.
 
     embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"
-    embedder = torch.nn.Sequential(*[torch.nn.Linear(768, 768), torch.nn.ReLU(), torch.nn.Linear(768, 128)])
+    embedder = torch.nn.Sequential(*[torch.nn.Linear(in_channels, in_channels), torch.nn.ReLU(), torch.nn.Linear(in_channels, 128)])
     embedder.load_state_dict(torch.load(path_join(args.output_dir, embedder_file), map_location=device)["state_dict"])
     gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
                      in_head=in_head, out_head=out_head, 
@@ -82,6 +81,7 @@ if __name__ == "__main__":
     acc = MulticlassAccuracy(num_classes=4)
     conf = MulticlassConfusionMatrix(num_classes=4)
     macro_recall = MulticlassRecall(num_classes=4, average="macro")
+    macro_precision = MulticlassPrecision(num_classes=4, average="macro")
     binary_recall = BinaryRecall()
 
     optimizer = graph_utils.get_optimizer(args.optimizer, gat, args.learning_rate)
@@ -109,6 +109,10 @@ if __name__ == "__main__":
         train_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_train, y_train)
         val_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_val, y_val)
 
+        # Train and valuation macro recall
+        train_macro_precision = graph_utils.macro_recall(macro_precision, y_pred_train, y_train)
+        val_macro_precision = graph_utils.macro_recall(macro_precision, y_pred_val, y_val)
+
         # Train and valuation binary accuracy
         binary_mask = torch.logical_or((y_train == 0), (y_train == 3))
         y_binary_train = graph_utils.rewrite_labels_binary(y_train[binary_mask])
@@ -125,15 +129,19 @@ if __name__ == "__main__":
         # Print train and valuation confusion matrices
         print(f"\ttrain confusion matrix:\n\t{train_conf.long()}\n\tval confusion matrix:\n\t{val_conf.long()}")
         # Print train and valuation accuracy
-        print(f"\ttrain accuracy: {train_acc}\n\tval accuracy: {val_acc}")
+        print(f"\ttrain accuracy: {train_acc.item()}\n\tval accuracy: {val_acc.item()}")
         # Print train and valuation macro recall
-        print(f"\ttrain macro recall: {train_macro_recall}\n\tval macro recall: {val_macro_recall}")
+        print(f"\ttrain macro recall: {train_macro_recall.item()}\n\tval macro recall: {val_macro_recall.item()}")
+        # Print train and valuation macro precision
+        print(f"\ttrain macro precision: {train_macro_precision.item()}\n\tval macro precision: {val_macro_precision.item()}")
         # Print train and valuation binary accuracy
-        print(f"\ttrain binary recall: {train_binary_recall}\n\tval binary recall: {val_binary_recall}")
+        print(f"\ttrain binary recall: {train_binary_recall.item()}\n\tval binary recall: {val_binary_recall.item()}")
 
-        if val_macro_recall > best_recall and args.save_model:
-            best_recall = macro_recall            
+        if val_macro_recall > best_recall:
+            best_recall = macro_recall    
+            best_i = i        
             save = {
                 "state_dict": gat.state_dict(),
                 }
-            torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{i}.pt"))
+    if args.save_model:
+        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{best_i}.pt"))
