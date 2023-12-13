@@ -148,9 +148,13 @@ if __name__ == "__main__":
     val_dataset = SimpleDataset(graph.x[graph.val_idx], graph.y[graph.val_idx])
     print("Train dataset size:", len(train_dataset))
     print("Validate dataset size:", len(val_dataset))
-    # batch size is set to 256
-    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=256, drop_last=True)
-    val_loader = DataLoader(val_dataset, shuffle=True, batch_size=256, drop_last=True)
+    
+    batch_size = 256
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
+    val_loader = DataLoader(val_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
+
+    n_train_batches = len(train_dataset) // batch_size
+    n_val_batches = len(val_dataset) // batch_size
     
     activation = nn.ReLU()
     lr = 1e-4 # optimizer
@@ -171,7 +175,7 @@ if __name__ == "__main__":
     train_logs = defaultdict(list)
     val_logs = defaultdict(list)
     
-    # empty cache
+    # better safe than sorry
     torch.cuda.empty_cache()
 
     # contrastive loss function with specific temperature
@@ -180,20 +184,123 @@ if __name__ == "__main__":
     config = f"act_{activation._get_name()}_opt_AdamW_lr_{lr}_bs_{256}_t_{temp}"
     print(f"Configuration:\n\t{config}")
 
+    t_loss, v_loss = float("inf"), float("inf")
+    t_top1, v_top1 = 0, 0
+    t_top2, v_top2 = 0, 0
+    t_top5, v_top5 = 0, 0
+    t_mean_pos, v_mean_pos = batch_size, batch_size
     for i in range(args.epochs):
         train_loss, train_logs = train_loop(train_loader, model, loss_func, optimizer, lr_scheduler, train_logs, device)
         val_loss, val_logs = val_loop(val_loader, model, loss_func, val_logs, device)
 
+        # Lower is better!
+        if train_loss < t_loss:
+            t_loss = train_loss
+            t_loss_config = config
+            t_loss_i = i
+            save_t_loss = {
+            "state_dict": model.state_dict(),
+            }
+        # Lower is better!
+        if val_loss < v_loss:
+            v_loss = val_loss
+            v_loss_config = config
+            v_loss_i = i
+            save_v_loss = {
+            "state_dict": model.state_dict(),
+            }
+
         print(f"Epoch {i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}")
         for (t_key, t_value), (v_key, v_value) in zip(train_logs.items(), val_logs.items()):
+            t = torch.mean(torch.tensor(t_value[-n_train_batches:]))
+            v = torch.mean(torch.tensor(v_value[-n_val_batches:]))
             print()
-            print(f"\t{t_key}: {torch.mean(torch.tensor(t_value[-60:]))}")
-            print(f"\t{v_key}: {torch.mean(torch.tensor(v_value[-60:]))}")
-        print()
-        
-        save = {
-        "state_dict": model.state_dict(),
-        }
+            # print the average of the batches
+            print(f"\t{t_key}: {t}")
+            print(f"\t{v_key}: {v}")
 
-        # Save every epoch!
-        torch.save(save, path_join(args.output_dir, f"embedder_{config}_{i}.pt"))                 
+            if t_key == "train_acc_top1":
+                # Higher is better!
+                if t > t_top1:
+                    t_top1 = t
+                    t_top1_config = config
+                    t_top1_i = i
+                    save_t_top1 = {
+                    "state_dict": model.state_dict(),
+                    }
+                # Higher is better!
+                if v > v_top1:
+                    v_top1 = v
+                    v_top1_config = config
+                    v_top1_i = i
+                    save_v_top1 = {
+                    "state_dict": model.state_dict(),
+                    }
+            elif t_key == "train_acc_top2":
+                # Higher is better!
+                if t > t_top2:
+                    t_top2 = t
+                    t_top2_config = config
+                    t_top2_i = i
+                    save_t_top2 = {
+                    "state_dict": model.state_dict(),
+                    }
+                # Higher is better!
+                if v > v_top2:
+                    v_top2 = v
+                    v_top2_config = config
+                    v_top2_i = i
+                    save_v_top2 = {
+                    "state_dict": model.state_dict(),
+                    } 
+            elif t_key == "train_acc_top5":
+                # Higher is better!
+                if t > t_top5:
+                    t_top5 = t
+                    t_top5_config = config
+                    t_top5_i = i
+                    save_t_top5 = {
+                    "state_dict": model.state_dict(),
+                    }
+                # Higher is better!
+                if v > v_top5:
+                    v_top5 = v
+                    v_top5_config = config
+                    v_top5_i = i
+                    save_v_top5 = {
+                    "state_dict": model.state_dict(),
+                    } 
+            elif t_key == "train_acc_mean_pos":
+                # Lower is better!
+                if t < t_mean_pos:
+                    t_mean_pos = t
+                    t_mean_pos_config = config
+                    t_mean_pos_i = i
+                    save_t_mean_pos = {
+                    "state_dict": model.state_dict(),
+                    }
+                # Lower is better!
+                if v < v_mean_pos:
+                    v_mean_pos = v
+                    v_mean_pos_config = config
+                    v_mean_pos_i = i
+                    save_v_mean_pos = {
+                    "state_dict": model.state_dict(),
+                    }
+        print()
+
+
+    torch.save(save_t_loss, path_join(args.output_dir, f"embedder_{t_loss_config}_{t_loss_i}.pt"))                 
+    torch.save(save_v_loss, path_join(args.output_dir, f"embedder_{v_loss_config}_{v_loss_i}.pt"))                 
+    
+    torch.save(save_t_top1, path_join(args.output_dir, f"embedder_{t_top1_config}_{t_top1_i}.pt"))                 
+    torch.save(save_t_top2, path_join(args.output_dir, f"embedder_{t_top2_config}_{t_top2_i}.pt"))                 
+    torch.save(save_t_top5, path_join(args.output_dir, f"embedder_{t_top5_config}_{t_top5_i}.pt")) 
+
+    torch.save(save_v_top1, path_join(args.output_dir, f"embedder_{v_top1_config}_{v_top1_i}.pt"))                 
+    torch.save(save_v_top2, path_join(args.output_dir, f"embedder_{v_top2_config}_{v_top2_i}.pt"))                 
+    torch.save(save_v_top5, path_join(args.output_dir, f"embedder_{v_top5_config}_{v_top5_i}.pt"))                 
+
+    torch.save(save_t_mean_pos, path_join(args.output_dir, f"embedder_{t_mean_pos_config}_{t_mean_pos_i}.pt"))    
+    torch.save(save_v_mean_pos, path_join(args.output_dir, f"embedder_{v_mean_pos_config}_{v_mean_pos_i}.pt"))    
+    
