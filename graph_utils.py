@@ -105,7 +105,8 @@ def get_edge_index(node_features, distances=None, threshold=.85):
         distances = get_distances(node_features)
 
     # do not want to connect node to itself, inplace operation
-    distances.fill_diagonal_(-1.)
+    mask = torch.triu(torch.ones(distances.shape), diagonal=0).bool()
+    distances[mask] = -1.
 
     edge_index = torch.nonzero(distances >= threshold)
 
@@ -121,6 +122,11 @@ def rewrite_labels(labels):
 
     Returns:
     - torch.Tensor: Transformed labels tensor adhering to defined conditions.
+
+    Example:
+    >>> original_label = torch.tensor([1, 0, 1])
+    >>> rewrite_labels(original_label)
+    Output: tensor([1, 1, 1])
     """
 
     new_labels = torch.empty_like(labels[:, 0])
@@ -192,7 +198,7 @@ def accuracy(acc_metric, inputs, targets):
 
     acc_metric.reset()
     acc_metric.update(inputs, targets)
-    return acc_metric.compute().item()
+    return acc_metric.compute()
 
 
 def macro_recall(recall_metric, inputs, targets):
@@ -210,7 +216,7 @@ def macro_recall(recall_metric, inputs, targets):
 
     recall_metric.reset()
     recall_metric.update(inputs, targets)
-    return recall_metric.compute().item()
+    return recall_metric.compute()
 
 
 def binary_accuracy(acc_metric, inputs, targets):
@@ -228,8 +234,13 @@ def binary_accuracy(acc_metric, inputs, targets):
 
     acc_metric.reset()
     acc_metric.update(inputs, targets)
-    return acc_metric.compute().item()
+    return acc_metric.compute()
 
+
+def macro_precision(precision_metric, inputs, targets):
+    precision_metric.reset()
+    precision_metric.update(inputs, targets)
+    return precision_metric.compute()
 
 def binary_recall(recall_metric, inputs, targets):
     """
@@ -246,7 +257,7 @@ def binary_recall(recall_metric, inputs, targets):
 
     recall_metric.reset()
     recall_metric.update(inputs, targets)
-    return recall_metric.compute().item()
+    return recall_metric.compute()
 
 
 def k_frame_agreement(inputs, targets, k=1):
