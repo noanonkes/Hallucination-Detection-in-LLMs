@@ -9,6 +9,7 @@ from dataloader import SentenceLabelDataset
 from graph_utils import *
 from os.path import join as path_join
 
+from torch_geometric.utils import to_undirected
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -27,8 +28,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # for reproducibility
-    torch.manual_seed(42)
-    np.random.seed(42)
+    set_seed(42)
 
     # use cuda if cuda is available
     if args.use_cuda:
@@ -41,11 +41,6 @@ if __name__ == "__main__":
     dataloader = DataLoader(full_dataset, batch_size=1,
                             shuffle=True, num_workers=args.num_workers)
 
-    # get train/val/holdout/test sizes -> 70 10 15 5
-    train_size = int(len(full_dataset) * 0.7)
-    val_size = int(len(full_dataset) * 0.1)
-    holdout_size = int(len(full_dataset) * 0.15)
-    test_size = len(full_dataset) - train_size - val_size - holdout_size
 
     # Load pre-trained BERT model and tokenizer
     tokenizer = BertTokenizer.from_pretrained(args.model_name)
@@ -71,22 +66,37 @@ if __name__ == "__main__":
     edge_index = edge_index.t().contiguous().to(device)
     print("Edge index shape:", edge_index.shape, "\n")
 
-    # 11 answers per questions
-    idx = np.arange(len(full_dataset)) * 11
+    # all possible indices
+    idx = np.arange(len(node_features))
+    num_indices = len(idx)
+    np.random.shuffle(idx)
 
-    train_idx = np.array([np.arange(i, i+11) for i in idx[:train_size]]).ravel()
-    val_idx = np.array([np.arange(i, i+11) for i in idx[train_size:train_size + val_size]]).ravel()
-    holdout_idx = np.array([np.arange(i, i+11) for i in idx[train_size + val_size:train_size + val_size + holdout_size]]).ravel()
-    test_idx = np.array([np.arange(i, i+11) for i in idx[train_size + val_size + holdout_size:]]).ravel()
+    # get train/val/test sizes -> 70 15 15
+    train_ratio = 0.70
+    val_ratio = 0.15
+    test_ratio = 0.15
+
+    # Calculate the number of indices for each set
+    num_train = int(train_ratio * num_indices)
+    num_val = int(val_ratio * num_indices)
+    num_test = num_indices - num_train - num_val
+
+    # Split the indices into train, validation, and test sets
+    train_indices = idx[:num_train]
+    val_indices = idx[num_train:num_train + num_val]
+    test_indices = idx[num_train + num_val:]
 
     data = Data(x=node_features, y=labels, edge_index=edge_index)
-    data.train_idx = torch.tensor(train_idx, dtype=torch.long)
-    data.val_idx = torch.tensor(val_idx, dtype=torch.long)
-    data.holdout_idx = torch.tensor(holdout_idx, dtype=torch.long)
-    data.test_idx = torch.tensor(test_idx, dtype=torch.long)
+    data.edge_index = to_undirected(data.edge_index)
+
+    data.train_idx = torch.tensor(train_indices, dtype=torch.long)
+    data.val_idx = torch.tensor(val_indices, dtype=torch.long)
+    data.test_idx = torch.tensor(test_indices, dtype=torch.long)
+
+    print("Data is directed:", data.is_directed())
 
     print("Final dataloader:", data)
     print("Saved graph and distances in ", args.path)
 
-    torch.save(data, path_join(args.path, "graph.pt"))
+    torch.save(data, path_join(args.path, "graph2.pt"))
     torch.save(distances, path_join(args.path, "distances.pt"))
