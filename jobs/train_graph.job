@@ -25,6 +25,7 @@ EXEC_FILE=$SOURCE_FOLDER/train_graph.py
 # Run executable
 srun python -u $EXEC_FILE \
 	--use-cuda \
-    --own-gat \
     --epochs 500 \
-    --pt-epoch 783
+    --pt-epoch 950 \
+    --save-model
+    # --load-model "path to model weights"

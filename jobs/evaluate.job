@@ -1,0 +1,90 @@
+#!/bin/bash
+
+#SBATCH --job-name=evaluate
+#SBATCH --output=slurm_output/%x_%A.out
+#SBATCH --error=slurm_output/%x_%A.err
+#SBATCH --time=00:40:00
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --gpus=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=18
+#SBATCH --mem=120G
+
+# Activate env
+module purge
+module load 2022
+module load Anaconda3/2022.05
+module load Python/3.10.4-GCCcore-11.3.0
+source activate ir222
+
+# Some constants  (trailing spaces are not stripped automatically!)
+SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
+EXEC_FILE=$SOURCE_FOLDER/evaluate.py
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/5_GAT_465.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/8_GAT_489.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/17_GAT_492.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/23_GAT_484.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/435_GAT_428.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/783_GAT_484.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/810_GAT_497.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/820_GAT_459.pt"
+
+# Run executable
+srun python -u $EXEC_FILE \
+	--use-cuda \
+    --mode "val" \
+    --load-model "weights/950_GAT_483.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/962_GAT_479.pt"
+
+# # Run executable
+# srun python -u $EXEC_FILE \
+# 	--use-cuda \
+#     --mode "val" \
+#     --load-model "weights/978_GAT_411.pt"
+

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name=CONT
+#SBATCH --job-name=kNN_combined
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
-#SBATCH --time=05:00:00
+#SBATCH --time=00:05:00
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --gpus=1
@@ -20,8 +20,9 @@ source activate ir222
 
 # Some constants  (trailing spaces are not stripped automatically!)
 SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
-EXEC_FILE=$SOURCE_FOLDER/contrastive_learning.py
+EXEC_FILE=$SOURCE_FOLDER/kNN.py
 
 # Run executable
 srun python -u $EXEC_FILE \
-	--use-cuda
+	--use-cuda \
+	--combined

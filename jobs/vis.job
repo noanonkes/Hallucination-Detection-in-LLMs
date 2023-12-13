@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --job-name=graph
+#SBATCH --job-name=vis
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
-#SBATCH --time=00:10:00
-#SBATCH --partition=gpu
+#SBATCH --time=01:00:00
+#SBATCH --partition=staging
 #SBATCH --nodes=1
-#SBATCH --gpus=1
+#SBATCH --gpus=0
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=18
 #SBATCH --mem=120G
@@ -20,8 +20,7 @@ source activate ir222
 
 # Some constants  (trailing spaces are not stripped automatically!)
 SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
-EXEC_FILE=$SOURCE_FOLDER/make_graph.py
+EXEC_FILE=$SOURCE_FOLDER/visualize.py
 
 # Run executable
-srun python -u $EXEC_FILE \
-	--use-cuda \
+srun python -u $EXEC_FILE
