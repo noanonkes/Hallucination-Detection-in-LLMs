@@ -17,8 +17,6 @@ if __name__ == "__main__":
                         help="Path to the data folder")
     parser.add_argument("--output_dir", type=str, default="weights/",
                         help="Path to save model weights to")
-    parser.add_argument("--num-workers", type=int, default=4,
-                        help="Number of cores to use when loading the data")
     parser.add_argument("--epochs", type=int, default=100,
                         help="Number of epochs to train the model")
     parser.add_argument("--optimizer", type=str, default="Adam",
@@ -26,12 +24,10 @@ if __name__ == "__main__":
                         help="Which optimizer to use for training")
     parser.add_argument("--learning-rate", type=float, default=1e-3,
                         help="Learning rate for the optimizer")
-    parser.add_argument("--pt-epoch", type=int, default=950,
+    parser.add_argument("--pt-epoch", type=int, default=998,
                         help="Which epoch to use for the embedder weights")
-    parser.add_argument("--load-model", type=str, default=None,
-                        help="GAT model weights to use.")
     parser.add_argument("--save-model", action="store_true", default=False,
-                        help="Whether to save all model weights")
+                        help="Whether to save best model weights")
     args = parser.parse_args()
 
     # for reproducibility
@@ -61,17 +57,14 @@ if __name__ == "__main__":
     out_channels = graph.y.shape[1] # number of columns
     hidden_channels = 32
     in_head = 2
-    out_head = 1
-    dropout = 0.
+    dropout = 0.2
 
     embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"
     embedder = torch.nn.Sequential(*[torch.nn.Linear(in_channels, in_channels), torch.nn.ReLU(), torch.nn.Linear(in_channels, 128)])
     embedder.load_state_dict(torch.load(path_join(args.output_dir, embedder_file), map_location=device)["state_dict"])
     gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
-                     in_head=in_head, out_head=out_head, 
+                     in_head=in_head, 
                      n_classes=out_channels, dropout=dropout)
-    if args.load_model is not None:
-        gat.load_state_dict(torch.load(path_join(args.output_dir, args.load_model), map_location=device)["state_dict"])
     gat.to(device)
 
     # cross entropy loss -- w/ logits
@@ -137,11 +130,11 @@ if __name__ == "__main__":
         # Print train and valuation binary accuracy
         print(f"\ttrain binary recall: {train_binary_recall.item()}\n\tval binary recall: {val_binary_recall.item()}")
 
-        if val_macro_recall > best_recall:
-            best_recall = macro_recall    
+        if val_macro_recall.item() > best_recall:
+            best_recall = val_macro_recall.item() 
             best_i = i        
             save = {
                 "state_dict": gat.state_dict(),
                 }
     if args.save_model:
-        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{best_i}.pt"))
+        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_d02_GAT_{best_i}.pt"))

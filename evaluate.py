@@ -1,5 +1,5 @@
 import torch, argparse
-from torcheval.metrics import MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, BinaryRecall
+from torcheval.metrics import MulticlassAUPRC, MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, BinaryRecall
 from torch_geometric.utils import remove_isolated_nodes
 
 from GAT import GAT
@@ -15,12 +15,10 @@ if __name__ == "__main__":
                         help="Use GPU acceleration if available")
     parser.add_argument("--path", type=str, default="data/",
                         help="Path to the data folder")
-    parser.add_argument("--num-workers", type=int, default=4,
-                        help="Number of cores to use when loading the data")
-    parser.add_argument("--load-model", type=str, default="weights/950_GAT_483.pt",
+    parser.add_argument("--load-model", type=str, default="weights/998_d02_GAT_284.pt",
                         help="GAT model weights to use.")
     parser.add_argument("--mode", type=str, default="val",
-                        choices=["train", "val", "holdout", "test"],
+                        choices=["train", "val", "test"],
                         help="Mode for evaluation")
     args = parser.parse_args()
 
@@ -61,12 +59,11 @@ if __name__ == "__main__":
     out_channels = graph.y.shape[1] # number of columns
     hidden_channels = 32
     in_head = 2
-    out_head = 1
     dropout = 0.
 
     embedder = torch.nn.Sequential(*[torch.nn.Linear(in_channels, in_channels), torch.nn.ReLU(), torch.nn.Linear(in_channels, 128)])
     gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
-                     in_head=in_head, out_head=out_head, 
+                     in_head=in_head, 
                      n_classes=out_channels, dropout=dropout)
     gat.load_state_dict(torch.load(args.load_model, map_location=device)["state_dict"])
     gat.to(device)
@@ -77,9 +74,10 @@ if __name__ == "__main__":
     # Evaluation metrics
     acc = MulticlassAccuracy(num_classes=4)
     conf = MulticlassConfusionMatrix(num_classes=4)
-    macro_recall = MulticlassRecall(num_classes=4, average=None)
-    macro_precision = MulticlassPrecision(num_classes=4, average=None)
+    macro_recall = MulticlassRecall(num_classes=4, average="macro")
+    macro_precision = MulticlassPrecision(num_classes=4, average="macro")
     binary_recall = BinaryRecall()
+    macro_AUPRC = MulticlassAUPRC(num_classes=4, average="macro")
 
     gat.eval()
     with torch.no_grad():
@@ -101,6 +99,9 @@ if __name__ == "__main__":
 
     # Valuation macro precision
     m_precision = graph_utils.macro_recall(macro_precision, y_pred, y)
+
+    # Valuation macro area under the precision-recall curve
+    m_AUPRC = graph_utils.macro_AUPRC(macro_AUPRC, y_pred, y)
 
     # One frame agreement
     ofa = graph_utils.k_frame_agreement(y_pred, y, k=1)
@@ -125,4 +126,6 @@ if __name__ == "__main__":
     print(f"Binary recall: {b_recall.item()}")
     # Print valuation one frame agreement
     print(f"One frame agreement: {ofa}")
+    # Print valuation macro AUPRC
+    print(f"Macro AUPRC: {m_AUPRC.item()}")
  

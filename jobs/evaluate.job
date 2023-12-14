@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=evaluate
+#SBATCH --job-name=evaluate_test
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
 #SBATCH --time=00:40:00
@@ -22,69 +22,8 @@ source activate ir222
 SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
 EXEC_FILE=$SOURCE_FOLDER/evaluate.py
 
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/5_GAT_465.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/8_GAT_489.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/17_GAT_492.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/23_GAT_484.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/435_GAT_428.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/783_GAT_484.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/810_GAT_497.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/820_GAT_459.pt"
-
 # Run executable
 srun python -u $EXEC_FILE \
 	--use-cuda \
-    --mode "val" \
-    --load-model "weights/950_GAT_483.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/962_GAT_479.pt"
-
-# # Run executable
-# srun python -u $EXEC_FILE \
-# 	--use-cuda \
-#     --mode "val" \
-#     --load-model "weights/978_GAT_411.pt"
-
+    --mode "test" \
+    --load-model "weights/998_GAT_431.pt"

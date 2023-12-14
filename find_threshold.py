@@ -7,23 +7,24 @@ Ideally, the range of node degrees is uniform, so without peaks of
 super connected, or super unconnected nodes. 
 """
 import torch
-from torch_geometric.utils import degree
+from torch_geometric.utils import degree, to_undirected
 from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 
-LIMIT = True
+LIMIT = False
 
 if __name__ == "__main__":
-    if torch.cuda.is_available():
-        distances = torch.load("data/distances.pt")
-        dataset = torch.load("data/graph.pt")
-    else:
-        distances = torch.load("data/distances.pt", map_location=torch.device('cpu'))
-        dataset = torch.load("data/graph.pt", map_location=torch.device('cpu'))
+    
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+    distances = torch.load("data/distances.pt", map_location=device)
+    dataset = torch.load("data/graph.pt", map_location=device)
 
     # don't want node to connect to itself
-    distances.fill_diagonal_(-1.)
+    mask = torch.triu(torch.ones(distances.shape), diagonal=0).bool()
+    distances[mask] = -1.
+    dataset.edge_index = to_undirected(dataset.edge_index)
 
     for threshold in np.arange(0.7, 1., 0.01):
         t = round(threshold, 2)
@@ -48,10 +49,10 @@ if __name__ == "__main__":
         numbers = Counter(degrees)
 
         # Bar plot
-        fig, ax = plt.subplots(figsize=(18, 6))
-        ax.set_title(f"Threshold = {t}")
-        ax.set_xlabel('Node degree')
-        ax.set_ylabel('Number of nodes')
+        fig, ax = plt.subplots(figsize=(12, 4))
+        ax.set_title(f"Node degree distribution for a similarity threshold of {t}", fontsize=16)
+        ax.set_xlabel('Node degree', fontsize=10)
+        ax.set_ylabel('Number of nodes', fontsize=10)
         plt.bar(numbers.keys(),
                 numbers.values(),
                 color='#0A047A')

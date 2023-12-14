@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=train_graph
+#SBATCH --job-name=d2_998_train_graph
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
 #SBATCH --time=00:30:00
@@ -26,6 +26,5 @@ EXEC_FILE=$SOURCE_FOLDER/train_graph.py
 srun python -u $EXEC_FILE \
 	--use-cuda \
     --epochs 500 \
-    --pt-epoch 950 \
+    --pt-epoch 998 \
     --save-model
-    # --load-model "path to model weights"

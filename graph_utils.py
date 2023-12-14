@@ -104,7 +104,7 @@ def get_edge_index(node_features, distances=None, threshold=.85):
     if distances is None:
         distances = get_distances(node_features)
 
-    # do not want to connect node to itself, inplace operation
+    # do not want to connect node to itself
     mask = torch.triu(torch.ones(distances.shape), diagonal=0).bool()
     distances[mask] = -1.
 
@@ -161,6 +161,7 @@ def rewrite_labels_binary(labels):
     >>> rewrite_labels_binary(original_labels)
     Output: tensor([0, 1, 1, 1, 1])
     """
+    
     return torch.where(labels == 0, 0, 1)
 
 
@@ -201,6 +202,29 @@ def accuracy(acc_metric, inputs, targets):
     return acc_metric.compute()
 
 
+def macro_AUPRC(auprc_metric, inputs, targets):
+    """
+    Computes the macro average Area Under the Precision-Recall Curve (AUPRC).
+
+    This function updates an AUPRC (Area Under the Precision-Recall Curve) metric
+    using the predicted 'inputs' and true 'targets' for multiple classes and returns
+    the macro average AUPRC score.
+
+    Args:
+    - auprc_metric (torchmetrics.AveragePrecision): A PyTorch Metric object
+      for computing the average precision.
+    - inputs (tensor): Predicted probabilities or scores for multiple classes.
+    - targets (tensor): True class labels in one-hot encoded format or integer format.
+
+    Returns:
+    - macro_avg_auprc (float): Macro average AUPRC score computed across all classes.
+    """
+
+    auprc_metric.reset()
+    auprc_metric.update(torch.nn.functional.one_hot(inputs), targets)
+    return auprc_metric.compute()
+
+
 def macro_recall(recall_metric, inputs, targets):
     """
     Computes macro recall metric based on predicted and target labels.
@@ -238,9 +262,22 @@ def binary_accuracy(acc_metric, inputs, targets):
 
 
 def macro_precision(precision_metric, inputs, targets):
+    """
+    Computes macro precision metric based on predicted and target labels.
+
+    Args:
+    - precision_metric: Macro precision metric object.
+    - inputs (torch.Tensor): Predicted labels.
+    - targets (torch.Tensor): Target labels.
+
+    Returns:
+    - float: Computed macro precision value.
+    """
+
     precision_metric.reset()
     precision_metric.update(inputs, targets)
     return precision_metric.compute()
+
 
 def binary_recall(recall_metric, inputs, targets):
     """
@@ -282,6 +319,7 @@ def k_frame_agreement(inputs, targets, k=1):
     >>> k_frame_agreement(predicted_labels, true_labels, k=1)
     Output: tensor(0.8000)
     """
+
     lower_bound = targets - k
     upper_bound = targets + k
     

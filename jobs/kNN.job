@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=kNN_combined
+#SBATCH --job-name=kNN
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
 #SBATCH --time=00:05:00
@@ -25,4 +25,4 @@ EXEC_FILE=$SOURCE_FOLDER/kNN.py
 # Run executable
 srun python -u $EXEC_FILE \
 	--use-cuda \
-	--combined
+	--pt-epoch 998

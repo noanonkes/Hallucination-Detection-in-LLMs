@@ -5,11 +5,10 @@ progress/
 # Too big
 data/distances.pt
 data/graph.pt
+data/graph_old.pt
 
-# runs
-images/
 runs/
-weights/
+keep_save/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -19,8 +19,6 @@ if __name__ == "__main__":
                         help="Path to data")
     parser.add_argument("--model_name", type=str, default="bert-base-uncased",
                         help="Name of model used to embed sentences")
-    parser.add_argument("--num-workers", type=int, default=4,
-                        help="Number of cores to use when loading the data")
     parser.add_argument("--threshold", type=float, default=0.85,
                         help="Similarity threshold to form an edge")
     parser.add_argument("--distances", action="store_true", default=False,

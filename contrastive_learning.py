@@ -120,8 +120,6 @@ if __name__ == "__main__":
                         help="Path to the data folder")
     parser.add_argument("--output_dir", type=str, default="weights/",
                         help="Path to save model weights to")
-    parser.add_argument("--num-workers", type=int, default=4,
-                        help="Number of cores to use when loading the data")
     parser.add_argument("--epochs", type=int, default=1000,
                         help="Number of epochs to train the model")
     args = parser.parse_args()
@@ -223,7 +221,6 @@ if __name__ == "__main__":
                 # Higher is better!
                 if t > t_top1:
                     t_top1 = t
-                    t_top1_config = config
                     t_top1_i = i
                     save_t_top1 = {
                     "state_dict": model.state_dict(),
@@ -231,7 +228,6 @@ if __name__ == "__main__":
                 # Higher is better!
                 if v > v_top1:
                     v_top1 = v
-                    v_top1_config = config
                     v_top1_i = i
                     save_v_top1 = {
                     "state_dict": model.state_dict(),
@@ -240,7 +236,6 @@ if __name__ == "__main__":
                 # Higher is better!
                 if t > t_top2:
                     t_top2 = t
-                    t_top2_config = config
                     t_top2_i = i
                     save_t_top2 = {
                     "state_dict": model.state_dict(),
@@ -248,7 +243,6 @@ if __name__ == "__main__":
                 # Higher is better!
                 if v > v_top2:
                     v_top2 = v
-                    v_top2_config = config
                     v_top2_i = i
                     save_v_top2 = {
                     "state_dict": model.state_dict(),
@@ -257,7 +251,6 @@ if __name__ == "__main__":
                 # Higher is better!
                 if t > t_top5:
                     t_top5 = t
-                    t_top5_config = config
                     t_top5_i = i
                     save_t_top5 = {
                     "state_dict": model.state_dict(),
@@ -265,7 +258,6 @@ if __name__ == "__main__":
                 # Higher is better!
                 if v > v_top5:
                     v_top5 = v
-                    v_top5_config = config
                     v_top5_i = i
                     save_v_top5 = {
                     "state_dict": model.state_dict(),
@@ -274,7 +266,6 @@ if __name__ == "__main__":
                 # Lower is better!
                 if t < t_mean_pos:
                     t_mean_pos = t
-                    t_mean_pos_config = config
                     t_mean_pos_i = i
                     save_t_mean_pos = {
                     "state_dict": model.state_dict(),
@@ -282,7 +273,6 @@ if __name__ == "__main__":
                 # Lower is better!
                 if v < v_mean_pos:
                     v_mean_pos = v
-                    v_mean_pos_config = config
                     v_mean_pos_i = i
                     save_v_mean_pos = {
                     "state_dict": model.state_dict(),
@@ -290,17 +280,17 @@ if __name__ == "__main__":
         print()
 
 
-    torch.save(save_t_loss, path_join(args.output_dir, f"embedder_{t_loss_config}_{t_loss_i}.pt"))                 
-    torch.save(save_v_loss, path_join(args.output_dir, f"embedder_{v_loss_config}_{v_loss_i}.pt"))                 
+    torch.save(save_t_loss, path_join(args.output_dir, f"embedder_{config}_{t_loss_i}.pt"))                 
+    torch.save(save_v_loss, path_join(args.output_dir, f"embedder_{config}_{v_loss_i}.pt"))                 
     
-    torch.save(save_t_top1, path_join(args.output_dir, f"embedder_{t_top1_config}_{t_top1_i}.pt"))                 
-    torch.save(save_t_top2, path_join(args.output_dir, f"embedder_{t_top2_config}_{t_top2_i}.pt"))                 
-    torch.save(save_t_top5, path_join(args.output_dir, f"embedder_{t_top5_config}_{t_top5_i}.pt")) 
+    torch.save(save_t_top1, path_join(args.output_dir, f"embedder_{config}_{t_top1_i}.pt"))                 
+    torch.save(save_t_top2, path_join(args.output_dir, f"embedder_{config}_{t_top2_i}.pt"))                 
+    torch.save(save_t_top5, path_join(args.output_dir, f"embedder_{config}_{t_top5_i}.pt")) 
 
-    torch.save(save_v_top1, path_join(args.output_dir, f"embedder_{v_top1_config}_{v_top1_i}.pt"))                 
-    torch.save(save_v_top2, path_join(args.output_dir, f"embedder_{v_top2_config}_{v_top2_i}.pt"))                 
-    torch.save(save_v_top5, path_join(args.output_dir, f"embedder_{v_top5_config}_{v_top5_i}.pt"))                 
+    torch.save(save_v_top1, path_join(args.output_dir, f"embedder_{config}_{v_top1_i}.pt"))                 
+    torch.save(save_v_top2, path_join(args.output_dir, f"embedder_{config}_{v_top2_i}.pt"))                 
+    torch.save(save_v_top5, path_join(args.output_dir, f"embedder_{config}_{v_top5_i}.pt"))                 
 
-    torch.save(save_t_mean_pos, path_join(args.output_dir, f"embedder_{t_mean_pos_config}_{t_mean_pos_i}.pt"))    
-    torch.save(save_v_mean_pos, path_join(args.output_dir, f"embedder_{v_mean_pos_config}_{v_mean_pos_i}.pt"))    
+    torch.save(save_t_mean_pos, path_join(args.output_dir, f"embedder_{config}_{t_mean_pos_i}.pt"))    
+    torch.save(save_v_mean_pos, path_join(args.output_dir, f"embedder_{config}_{v_mean_pos_i}.pt"))    
     

@@ -12,7 +12,6 @@ class GAT(torch.nn.Module):
         n_in (int): Dimensionality of input features (default: 768).
         hid (int): Dimensionality of hidden layer (default: 32).
         in_head (int): Number of attention heads in the first GAT layer (default: 2).
-        out_head (int): Number of attention heads in the second GAT layer (default: 1).
         n_classes (int): Number of output classes (default: 3).
         dropout (float): Dropout probability (default: 0.0).
 
@@ -27,7 +26,7 @@ class GAT(torch.nn.Module):
 
     """
 
-    def __init__(self, embedder, n_in=768, hid=32, in_head=2, out_head=1, n_classes=3, dropout=0.):
+    def __init__(self, embedder, n_in=768, hid=32, in_head=2, n_classes=3, dropout=0.):
         super(GAT, self).__init__()
 
         if embedder[0].in_features != n_in:
@@ -35,9 +34,8 @@ class GAT(torch.nn.Module):
 
         self.embedder = embedder
         self.linear = Linear(embedder[-1].out_features, hid)
-        self.conv1 = GATConv(hid, hid//2, heads=in_head, dropout=dropout)
-        self.conv2 = GATConv((hid//2) * in_head, n_classes, concat=False,
-                            heads=out_head, dropout=dropout)
+        self.conv = GATConv(hid, n_classes, heads=in_head, concat=False, dropout=dropout)
+
 
     def forward(self, x, edge_index):
         """
@@ -56,10 +54,7 @@ class GAT(torch.nn.Module):
         # linear layer
         x = self.linear(x)
 
-        # first GAT layer
-        x = self.conv1(x, edge_index)
-
-        # second GAT layer
-        x = self.conv2(x, edge_index)
+        # single conv layer
+        x = self.conv(x, edge_index)
 
         return x
