@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name=d2_998_train_graph
+#SBATCH --job-name=train_graph
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
-#SBATCH --time=00:30:00
+#SBATCH --time=01:00:00
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --gpus=1

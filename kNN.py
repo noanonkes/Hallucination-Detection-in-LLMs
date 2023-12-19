@@ -3,7 +3,7 @@ from torch_geometric.utils import remove_isolated_nodes
 from os.path import join as path_join
 import torch.nn.functional as F
 
-from torcheval.metrics import MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassRecall, MulticlassPrecision, BinaryRecall
+from torcheval.metrics import MulticlassAUPRC, MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, BinaryRecall
 
 
 import graph_utils
@@ -24,6 +24,8 @@ if __name__ == "__main__":
                         help="The k in kNN")
     parser.add_argument("--combined", action="store_true", default=False,
                         help="Use train and validation dataset")
+    parser.add_argument("--full", action="store_true", default=False,
+                        help="Use train and validation dataset and test on train")
     args = parser.parse_args()
 
     # for reproducibility
@@ -59,11 +61,19 @@ if __name__ == "__main__":
 
     train_embeddings = embedder(graph.x[graph.train_idx])
     val_embeddings = embedder(graph.x[graph.val_idx])
-    embeddings = torch.concat((train_embeddings, val_embeddings)) if args.combined else train_embeddings
+    if args.combined:
+        embeddings = torch.concat((train_embeddings, val_embeddings))
+        test_embeddings = val_embeddings
+    elif args.full:
+        embeddings = torch.concat((train_embeddings, val_embeddings))
+        test_embeddings = embedder(graph.x[graph.test_idx])
+    else:
+        embeddings = train_embeddings
+        test_embeddings = val_embeddings
     
-    preds = torch.zeros(len(graph.val_idx), dtype=graph.y.dtype, device=graph.y.device)
+    preds = torch.zeros(len(test_embeddings), dtype=graph.y.dtype, device=graph.y.device)
 
-    for i, emb in enumerate(val_embeddings):
+    for i, emb in enumerate(test_embeddings):
         dist = F.cosine_similarity(emb, embeddings, -1)
 
         if args.combined:
@@ -76,15 +86,20 @@ if __name__ == "__main__":
 
         # majority vote to get prediction
         preds[i] = torch.mode(labels, 0).values
-
-    # evaluation metrics
+    
+    # Evaluation metrics
     acc = MulticlassAccuracy(num_classes=4)
     conf = MulticlassConfusionMatrix(num_classes=4)
     macro_recall = MulticlassRecall(num_classes=4, average="macro")
     macro_precision = MulticlassPrecision(num_classes=4, average="macro")
     binary_recall = BinaryRecall()
+    macro_AUPRC = MulticlassAUPRC(num_classes=4, average="macro")
 
-    y = torch.sum(graph.y[graph.val_idx], dim=-1).long()
+    if args.full:
+        y = torch.sum(graph.y[graph.test_idx], dim=-1).long()
+    else:
+        y = torch.sum(graph.y[graph.val_idx], dim=-1).long()
+
     # Train and valuation confusion matrices
     conf_mat = graph_utils.confusion_matrix(conf, preds, y)
 
@@ -106,6 +121,9 @@ if __name__ == "__main__":
     # One frame agreement
     ofa = graph_utils.k_frame_agreement(preds, y, k=1)
 
+    # Valuation macro area under the precision-recall curve
+    m_AUPRC = graph_utils.macro_AUPRC(macro_AUPRC, preds, y)
+
     # Print train and valuation confusion matrices
     print(f"Confusion matrix:\n\t{conf_mat.long()}")
     # Print valuation accuracy
@@ -118,4 +136,6 @@ if __name__ == "__main__":
     print(f"Binary recall: {b_recall.item()}")
     # Print valuation one frame agreement
     print(f"One frame agreement: {ofa}")
+    # Print valuation macro AUPRC
+    print(f"Macro AUPRC: {m_AUPRC.item()}")
  

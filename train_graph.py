@@ -137,4 +137,4 @@ if __name__ == "__main__":
                 "state_dict": gat.state_dict(),
                 }
     if args.save_model:
-        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_d02_GAT_{best_i}.pt"))
+        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{best_i}.pt"))

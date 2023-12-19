@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=evaluate_test
+#SBATCH --job-name=PT_evaluate
 #SBATCH --output=slurm_output/%x_%A.out
 #SBATCH --error=slurm_output/%x_%A.err
 #SBATCH --time=00:40:00
@@ -23,6 +23,16 @@ SOURCE_FOLDER=$HOME/Misinformation-Detection-in-LLMs
 EXEC_FILE=$SOURCE_FOLDER/evaluate.py
 
 # Run executable
+srun python -u $EXEC_FILE \
+	--use-cuda \
+    --mode "train" \
+    --load-model "weights/998_GAT_431.pt"
+
+srun python -u $EXEC_FILE \
+	--use-cuda \
+    --mode "val" \
+    --load-model "weights/998_GAT_431.pt"
+
 srun python -u $EXEC_FILE \
 	--use-cuda \
     --mode "test" \
