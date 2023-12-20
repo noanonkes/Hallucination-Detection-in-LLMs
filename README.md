@@ -51,6 +51,23 @@ As the directory structure shows, we included a `environment.yml` file with the 
 ```bash
 conda env create -f environment.yml
 ```
+## Data
+
+We include all the data samples needed to train and test the model in the data directory. However, if you wish to get new samples. You can use the following script:
+
+```bash
+python document_generation.py <arguments>
+```
+
+The prompt can be changed inside inside the python script by setting a new `system_message`. You can also choose the following arguments:
+```bash
+--use-cuda: Enable GPU acceleration if available (default: True)
+--path <path_to_data>: Set the path to the data folder (default: "data/sampled_data.json")
+--output_dir <output_directory>: Specify the path to save the model generations (default: "data/generated/")
+--use-context <use-context>: Choose whether to use context, or no context prompt (default: False)
+--seed <seed>: Pick seed for reproducibility (default: 42)
+```
+
 
 ## Authors
 
