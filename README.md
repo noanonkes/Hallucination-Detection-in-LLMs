@@ -58,7 +58,7 @@ This research project is a collaborative effort by Sergei Agaronian & Noa Nonkes
 
 ## References
 
-[1] eganeh Shahsavar and Avishek Choudhury. 2023. User Intentions to Use ChatGPT for Self-Diagnosis and Health-Related Purposes: Cross-sectional Survey Study. JMIR Human Factors 10, 1 (may 2023), e47564. https://doi.org/10.2196/47564
+[1] Yeganeh Shahsavar and Avishek Choudhury. 2023. User Intentions to Use ChatGPT for Self-Diagnosis and Health-Related Purposes: Cross-sectional Survey Study. JMIR Human Factors 10, 1 (may 2023), e47564. https://doi.org/10.2196/47564
 
 [2] Enkelejda Kasneci, Kathrin Sessler, et al . 2023. ChatGPT for good? On opportunities and challenges of large language models for education. Learning and Individual Differences 103 (apr 2023), 102274. https://doi.org/10.1016/j.lindif.2023.102274
 
