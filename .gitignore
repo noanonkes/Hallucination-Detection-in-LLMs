@@ -1,6 +1,17 @@
 # Snellius
 slurm_output/
 progress/
+jobs/
+
+# Graph outputs
+graph/graph_output/
+
+# Too big
+data/distances.pt
+data/graph.pt
+data/graph_old.pt
+
+runs/
 
 # Too big
 data/distances.pt
