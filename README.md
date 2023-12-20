@@ -53,13 +53,13 @@ conda env create -f environment.yml
 ```
 ## Data Generation
 
-We include all the data samples needed to train and test the model in the data directory. However, if you wish to get new samples. You can use the following script:
+We include all the generations needed to train and test the model in the data directory. However, if you wish to get new samples. You can use the following script:
 
 ```bash
 python document_generation.py <arguments>
 ```
 
-The prompt can be changed inside inside the python script by setting a new `system_message`. You can also choose the following arguments:
+The prompt can be changed inside the python script by setting a new `system_message`. You can also choose the following arguments:
 ```bash
 --use-cuda: Enable GPU acceleration if available (default: True)
 --path <path_to_data>: Set the path to the data folder (default: "data/sampled_data.json")
