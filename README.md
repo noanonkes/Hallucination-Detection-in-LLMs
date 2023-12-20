@@ -51,7 +51,7 @@ As the directory structure shows, we included a `environment.yml` file with the 
 ```bash
 conda env create -f environment.yml
 ```
-## Data
+## Data Generation
 
 We include all the data samples needed to train and test the model in the data directory. However, if you wish to get new samples. You can use the following script:
 
