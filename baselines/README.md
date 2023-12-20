@@ -5,6 +5,12 @@ Welcome to the GitHub repository for the research project conducted at the Unive
 ## Training Baselines
 There is three baseline models available for training, MLP, Cross Encoder, and PCA. Based on the chosen parameters, you can choose the embedder to compute contextual embeddings, and save them for future use. All training is done on the tran set, validation is used for hyperparameter search, if desired, the best model is evaluated on the test set upon training completetion.
 
+### Usage
+To start training and evaluation, use the following command:
+```bash
+python train.py [arguments]
+```
+
 ## Authors
 
 This research project is a collaborative effort by Sergei Agaronian & Noa Nonkes, supervised by Roxana Petcu, from the University of Amsterdam.
