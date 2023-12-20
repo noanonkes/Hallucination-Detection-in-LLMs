@@ -13,6 +13,15 @@ data/graph_old.pt
 
 runs/
 
+# Too big
+data/distances.pt
+data/graph.pt
+
+# runs
+images/
+runs/
+weights/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
