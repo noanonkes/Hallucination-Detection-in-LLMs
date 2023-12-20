@@ -1,6 +1,6 @@
 from torch import nn
 import torch
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 class MisinformationCrossEncoder(nn.Module):
@@ -15,70 +15,31 @@ class MisinformationCrossEncoder(nn.Module):
         Cross entropy loss for training
     """
 
-    def __init__(self, model_name_or_dir) -> None:
+    def __init__(self, model_name, num_labels) -> None:
         """
         Constructing Cross Encoder
         Parameters
         ----------
-        model_name_or_dir: str
+        model_name: str
             name of the pretrained model which is used as an argument for
             the method AutoModelForSequenceClassification.from_pretrained
             (See: https://huggingface.co/transformers/v3.0.2/model_doc/auto.html#automodelforsequenceclassification)
         """
-        super().__init__()
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name_or_dir, num_labels=2
-        )
-        self.loss = nn.CrossEntropyLoss()
+        super(MisinformationCrossEncoder, self).__init__()
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-    def score_pairs(self, pairs):
-        """
-        Calculating scores for a batch of (query, doc) pairs
-        As the Cross-Encoder is a Sequence Classification model (i.e., it projects its last hidden states to a "classification" vector), calling the model's forward() (or __call__()) method will return the logits for the two classes (positive and negative). Hence, the score for a given query-document pair is the logit for the positive class.
-        Parameters
-        ----------
-        pairs: dict or transformers.BatchEncoding
-            the input (query, document) pairs tokenized by a HuggingFace's tokenizer. 
-        Returns
-        -------
-        torch.Tensor: 
-            a vector whose each element is the score (based on the CLS vector) of a (query, document) pair
-        """
-        return self.model(**pairs).logits[:, 0]
-
-    def forward(self, pos_pairs, neg_pairs):
-        """
-        To train the Cross-Encoder, we can optimize the model with a (binary) cross-entropy loss. As we are using a contrastive loss, the model's predictions are the scores for both the positive pairs and the negative pairs. For a given pair of (query, positive document) and (query, negative document), the model should "choose" the positive document. This can be done by setting the target label as the one matching the index of the positive document.
-        Parameters
-        ----------
-        pos_pairs: dict or transformers.BatchEncoding
-            pairs of (query, positive document) tokenized by a HuggingFace's tokenizer.
-        neg_pairs: dict or transformers.BatchEncoding
-            pairs of (query, negative document) tokenized by a HuggingFace's tokenizer.
-        Returns
-        -------
-        A tuple of (loss, pos_scores, neg_scores) which are the value of the cross entropy loss, the estimated score of
-        (query, positive document) pairs and the estimated score of (query, negative document) pairs.
-        The goal is to optimize for the loss
-        """
-        pos_scores = self.score_pairs(pos_pairs)
-        neg_scores = self.score_pairs(neg_pairs)
-
-        outputs = torch.stack((pos_scores, neg_scores), dim=-1)
-        loss = self.loss(input=outputs, target=torch.zeros_like(pos_scores).long())
-
-        return (loss, pos_scores, neg_scores)
-
-    def save_pretrained(self, model_dir, state_dict=None):
-        """
-        Save the model's checkpoint to a directory
-        Parameters
-        ----------
-        model_dir: str or Path
-            path to save the model checkpoint to
-        """
-        self.model.save_pretrained(model_dir,)
+    def forward(self, batch):
+        pairs = [(query, answer) for query, answer in zip(*batch)]
+        
+        inputs = self.tokenizer(pairs, return_tensors='pt', padding=True, truncation=True)
+        inputs = {key: val.to(self.device) for key, val in inputs.items()}  # Move inputs to GPU
+        
+        outputs = self.model(**inputs)
+        logits = outputs.logits
+        
+        return logits
 
     @classmethod
     def from_pretrained(cls, model_name_or_dir):
@@ -124,7 +85,7 @@ class MisinformationMLP(nn.Module):
 
 
 class MisinformationPCA(nn.Module):
-    def __init__(self, s_in=2, s_out=3):
+    def __init__(self, s_in=11, s_out=3):
         """
         Multi-layer Perceptron (MLP) for misinformation detection.
 
