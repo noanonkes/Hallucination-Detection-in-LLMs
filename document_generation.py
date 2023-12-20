@@ -70,9 +70,9 @@ if __name__ == "__main__":
 
     df = pd.read_json(args.path, lines=True)
     for i, row in tqdm(df.iterrows()):
-        query = row['data']['paragraphs'][0]['qas'][0]['question']
-        answer = row['data']['paragraphs'][0]['qas'][0]['answers'][0]['text']
-        context = row['data']['paragraphs'][0]['context'] if args.use_context else None
+        query = row["data"]["paragraphs"][0]["qas"][0]["question"]
+        answer = row["data"]["paragraphs"][0]["qas"][0]["answers"][0]["text"]
+        context = row["data"]["paragraphs"][0]["context"] if args.use_context else None
 
         # For testing
         # print(i, ":", query)
@@ -91,21 +91,23 @@ if __name__ == "__main__":
         ans_idx = decoded_output.rfind("<|assistant|>")
         ans = decoded_output[ans_idx:]
         try:
-            sentences = [str(i) + "," + line.split(': ')[1].strip('</s>') for line in ans.split('\n') if len(line.strip()) > 0]
-            formatted_sentences = '\n'.join(sentences)
-            formatted_sentences += '\n'
+            sentences = [str(i) + "," + line.split(": ")[1].strip("</s>") for line in ans.split("\n") if len(line.strip()) > 0]
+            formatted_sentences = "\n".join(sentences)
+            formatted_sentences += "\n"
             # Save the generated output
             generated_outputs.extend(formatted_sentences)
         except:
-            print(f'Failed to produce {i}: {query}')
+            print(f"Failed to produce {i}: {query}")
             print(ans)  
              
     output_filename = "with_context.csv" if args.use_context else "no_context.csv"
     output_path = args.output_dir + output_filename
 
     try:
-        with open(output_path, "w") as file:
-            file.writelines(generated_outputs)
+        # Splitting each string based on the first comma only
+        split_data = [item.split(",", 1) for item in generated_outputs]
+        df = pd.DataFrame(split_data, columns=["qid", "ans"])
+        df.to_csv(output_path, index=False)
         print(f"Generated content succesfully saved at: {output_path}")
         
     except Exception as e:
