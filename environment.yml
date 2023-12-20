@@ -1,4 +1,4 @@
-name: ir222
+name: ir2
 channels:
   - pytorch
   - nvidia
@@ -144,4 +144,12 @@ dependencies:
   - zipp=3.17.0=pyhd8ed1ab_0
   - zlib=1.2.13=h5eee18b_0
   - zstd=1.5.5=hc292b87_0
+  - pip:
+      - lightning-utilities==0.10.0
+      - pytorch-metric-learning==2.3.0
+      - scikit-learn==1.3.2
+      - scipy==1.11.4
+      - threadpoolctl==3.2.0
+      - torcheval==0.0.7
+      - torchmetrics==1.2.1
 prefix: /home/scur1002/miniconda3/envs/ir2
