@@ -12,15 +12,27 @@ We explore the behavior of large language models like ChatGPT when prompted with
 
 An overview of the directory structure as it is used is given below.  When downloading #TODO make sure to put the files in the nested folder `data/<NAMEDATASET>/`.  Most files should have a command-line argument for the data folder, but torchvision expects the data folder to contain the #TODO subdirectory.  
 
-
 ```tree
-├── data
-|    ├── <#TODO>
-|    |   └── files
-├── jobs
-|    └── create_env.job
-├── requirements.txt
-└── main.py
+├── data/
+|    ├── generated/
+|    |   ├── no_context.csv
+|    |   └── with_context.csv
+|    ├── sampled_data.json
+|    └── squad.biomedical.train.json
+├── graph/
+|    ├── images/
+|    ├── contrastive_learning.py
+|    ├── dataloader.py
+|    ├── evaluate_graph.py
+|    ├── GAT.py
+|    ├── kNN.py
+|    ├── make_graph.py
+|    ├── train_graph.py
+|    ├── utils_graph.py
+|    ├── visualize_graph.py
+|    └── contrastive learning
+├── weights/
+└── environment.yml
 ```
 
 ## Environment and requirements

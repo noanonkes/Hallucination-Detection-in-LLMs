@@ -3,7 +3,7 @@ from torcheval.metrics import MulticlassConfusionMatrix, MulticlassAccuracy, Mul
 from torch_geometric.utils import remove_isolated_nodes
 
 from GAT import GAT
-import graph_utils
+import utils_graph
 
 from os.path import join as path_join
 torch.set_printoptions(profile="full")
@@ -13,9 +13,9 @@ if __name__ == "__main__":
     # command line args for specifying the situation
     parser.add_argument("--use-cuda", action="store_true", default=False,
                         help="Use GPU acceleration if available")
-    parser.add_argument("--path", type=str, default="data/",
+    parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--output_dir", type=str, default="weights/",
+    parser.add_argument("--output_dir", type=str, default="../weights/",
                         help="Path to save model weights to")
     parser.add_argument("--epochs", type=int, default=100,
                         help="Number of epochs to train the model")
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # for reproducibility
-    graph_utils.set_seed(42)
+    utils_graph.set_seed(42)
     
     print("STARTING...  setup:")
     print(args)
@@ -77,45 +77,45 @@ if __name__ == "__main__":
     macro_precision = MulticlassPrecision(num_classes=4, average="macro")
     binary_recall = BinaryRecall()
 
-    optimizer = graph_utils.get_optimizer(args.optimizer, gat, args.learning_rate)
+    optimizer = utils_graph.get_optimizer(args.optimizer, gat, args.learning_rate)
 
     best_recall = 0.
     for i in range(args.epochs):
 
         # Train epoch and valuation loss
-        train_loss, model_output = graph_utils.train_loop(graph, gat, loss_func, optimizer)
+        train_loss, model_output = utils_graph.train_loop(graph, gat, loss_func, optimizer)
         val_loss = loss_func(model_output[graph.val_idx], graph.y[graph.val_idx].float()).item()
 
         # Rewrite the labels from vectors to integers
-        y_pred_train, y_train = graph_utils.rewrite_labels(model_output[graph.train_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.train_idx], dim=-1).long()
-        y_pred_val, y_val = graph_utils.rewrite_labels(model_output[graph.val_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.val_idx], dim=-1).long()
+        y_pred_train, y_train = utils_graph.rewrite_labels(model_output[graph.train_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.train_idx], dim=-1).long()
+        y_pred_val, y_val = utils_graph.rewrite_labels(model_output[graph.val_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.val_idx], dim=-1).long()
 
         # Train and valuation confusion matrices
-        train_conf = graph_utils.confusion_matrix(conf, y_pred_train, y_train)
-        val_conf = graph_utils.confusion_matrix(conf, y_pred_val, y_val)
+        train_conf = utils_graph.confusion_matrix(conf, y_pred_train, y_train)
+        val_conf = utils_graph.confusion_matrix(conf, y_pred_val, y_val)
 
         # Train and valuation accuracy
-        train_acc = graph_utils.accuracy(acc, y_pred_train, y_train)
-        val_acc = graph_utils.accuracy(acc, y_pred_val, y_val)
+        train_acc = utils_graph.accuracy(acc, y_pred_train, y_train)
+        val_acc = utils_graph.accuracy(acc, y_pred_val, y_val)
 
         # Train and valuation macro recall
-        train_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_train, y_train)
-        val_macro_recall = graph_utils.macro_recall(macro_recall, y_pred_val, y_val)
+        train_macro_recall = utils_graph.macro_recall(macro_recall, y_pred_train, y_train)
+        val_macro_recall = utils_graph.macro_recall(macro_recall, y_pred_val, y_val)
 
         # Train and valuation macro recall
-        train_macro_precision = graph_utils.macro_recall(macro_precision, y_pred_train, y_train)
-        val_macro_precision = graph_utils.macro_recall(macro_precision, y_pred_val, y_val)
+        train_macro_precision = utils_graph.macro_recall(macro_precision, y_pred_train, y_train)
+        val_macro_precision = utils_graph.macro_recall(macro_precision, y_pred_val, y_val)
 
         # Train and valuation binary accuracy
         binary_mask = torch.logical_or((y_train == 0), (y_train == 3))
-        y_binary_train = graph_utils.rewrite_labels_binary(y_train[binary_mask])
-        y_binary_pred_train = graph_utils.rewrite_labels_binary(y_pred_train[binary_mask])
-        train_binary_recall = graph_utils.binary_recall(binary_recall, y_binary_pred_train, y_binary_train)
+        y_binary_train = utils_graph.rewrite_labels_binary(y_train[binary_mask])
+        y_binary_pred_train = utils_graph.rewrite_labels_binary(y_pred_train[binary_mask])
+        train_binary_recall = utils_graph.binary_recall(binary_recall, y_binary_pred_train, y_binary_train)
         
         binary_mask = torch.logical_or((y_val == 0), (y_val == 3))
-        y_binary_val = graph_utils.rewrite_labels_binary(y_val[binary_mask])
-        y_binary_pred_val = graph_utils.rewrite_labels_binary(y_pred_val[binary_mask])
-        val_binary_recall = graph_utils.binary_recall(binary_recall, y_binary_pred_val, y_binary_val)
+        y_binary_val = utils_graph.rewrite_labels_binary(y_val[binary_mask])
+        y_binary_pred_val = utils_graph.rewrite_labels_binary(y_pred_val[binary_mask])
+        val_binary_recall = utils_graph.binary_recall(binary_recall, y_binary_pred_val, y_binary_val)
 
         # Print train and valuation loss
         print(f"Epoch: {i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}")

@@ -1,13 +1,9 @@
 import torch, argparse
-from torch_geometric.utils import remove_isolated_nodes, to_undirected
+from torch_geometric.utils import remove_isolated_nodes
 from os.path import join as path_join
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import umap
-from collections import Counter
-from sklearn.decomposition import PCA
-
-import numpy as np
 
 
 if __name__ == "__main__":
@@ -15,7 +11,7 @@ if __name__ == "__main__":
     # command line args for specifying the situation
     parser.add_argument("--use-cuda", action="store_true", default=False,
                         help="Use GPU acceleration if available")
-    parser.add_argument("--path", type=str, default="data/",
+    parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
     parser.add_argument("--output_dir", type=str, default="images/",
                         help="Path to save plot to")
@@ -41,27 +37,9 @@ if __name__ == "__main__":
     isolated = (remove_isolated_nodes(graph["edge_index"])[2] == False).sum(dim=0).item()
     print(f"Number of isolated nodes = {isolated}\n")
 
-    y = graph.y[graph.test_idx].sum(-1).tolist()
-    print("TEST", Counter(y))
-
-    y = graph.y[graph.val_idx].sum(-1).tolist()
-    print("VAL", Counter(y))
-
-    y = graph.y[graph.train_idx].sum(-1).tolist()
-    print("TRAIN", Counter(y))
-
-    freq = torch.zeros((4, 4))
-    all_labels = graph.y.sum(-1)
-    for i, node_i in enumerate(graph.edge_index[0]):
-        node_j = graph.edge_index[1, i]
-        label_i, label_j = all_labels[node_i], all_labels[node_j]
-        freq[label_i, label_j] += 1
-
-    print(freq.long())
-    
     embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_998.pt"
     embedder = torch.nn.Sequential(*[torch.nn.Linear(768, 768), torch.nn.ReLU(), torch.nn.Linear(768, 128)])
-    embedder.load_state_dict(torch.load(path_join("weights", embedder_file), map_location=device)["state_dict"])
+    embedder.load_state_dict(torch.load(path_join("../weights", embedder_file), map_location=device)["state_dict"])
     embedder.to(device)
     embeddings = embedder(graph.x)
     

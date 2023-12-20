@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from os.path import join as path_join
 from collections import defaultdict
-import graph_utils
+import utils_graph
 
 class SimCLR(nn.Module):
     """
@@ -59,6 +59,7 @@ class SimCLR(nn.Module):
         logs[mode+"_acc_mean_pos"].append(1+metric.float().mean().item())
 
         return nll, logs
+
 
 class SimpleDataset(Dataset):
     def __init__(self, X, y):
@@ -116,16 +117,20 @@ if __name__ == "__main__":
     # command line args for specifying the situation
     parser.add_argument("--use-cuda", action="store_true", default=False,
                         help="Use GPU acceleration if available")
-    parser.add_argument("--path", type=str, default="data/",
+    parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--output_dir", type=str, default="weights/",
+    parser.add_argument("--output_dir", type=str, default="../weights/",
                         help="Path to save model weights to")
     parser.add_argument("--epochs", type=int, default=1000,
                         help="Number of epochs to train the model")
+    parser.add_argument("--batch-size", type=int, default=256,
+                        help="Batch size used during training and evaluating")
+    parser.add_argument("--save-model", action="store_true", default=False,
+                        help="Whether to save model weights")
     args = parser.parse_args()
 
     # for reproducibility
-    graph_utils.set_seed(42)
+    utils_graph.set_seed(42)
     
     print("STARTING...  setup:")
     print(args)
@@ -147,12 +152,11 @@ if __name__ == "__main__":
     print("Train dataset size:", len(train_dataset))
     print("Validate dataset size:", len(val_dataset))
     
-    batch_size = 256
-    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
-    val_loader = DataLoader(val_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size, drop_last=True)
+    val_loader = DataLoader(val_dataset, shuffle=True, batch_size=args.batch_size, drop_last=True)
 
-    n_train_batches = len(train_dataset) // batch_size
-    n_val_batches = len(val_dataset) // batch_size
+    n_train_batches = len(train_dataset) // args.batch_size
+    n_val_batches = len(val_dataset) // args.batch_size
     
     activation = nn.ReLU()
     lr = 1e-4 # optimizer
@@ -182,31 +186,9 @@ if __name__ == "__main__":
     config = f"act_{activation._get_name()}_opt_AdamW_lr_{lr}_bs_{256}_t_{temp}"
     print(f"Configuration:\n\t{config}")
 
-    t_loss, v_loss = float("inf"), float("inf")
-    t_top1, v_top1 = 0, 0
-    t_top2, v_top2 = 0, 0
-    t_top5, v_top5 = 0, 0
-    t_mean_pos, v_mean_pos = batch_size, batch_size
     for i in range(args.epochs):
         train_loss, train_logs = train_loop(train_loader, model, loss_func, optimizer, lr_scheduler, train_logs, device)
         val_loss, val_logs = val_loop(val_loader, model, loss_func, val_logs, device)
-
-        # Lower is better!
-        if train_loss < t_loss:
-            t_loss = train_loss
-            t_loss_config = config
-            t_loss_i = i
-            save_t_loss = {
-            "state_dict": model.state_dict(),
-            }
-        # Lower is better!
-        if val_loss < v_loss:
-            v_loss = val_loss
-            v_loss_config = config
-            v_loss_i = i
-            save_v_loss = {
-            "state_dict": model.state_dict(),
-            }
 
         print(f"Epoch {i}\n\ttrain loss: {train_loss}\n\tval loss: {val_loss}")
         for (t_key, t_value), (v_key, v_value) in zip(train_logs.items(), val_logs.items()):
@@ -216,81 +198,11 @@ if __name__ == "__main__":
             # print the average of the batches
             print(f"\t{t_key}: {t}")
             print(f"\t{v_key}: {v}")
-
-            if t_key == "train_acc_top1":
-                # Higher is better!
-                if t > t_top1:
-                    t_top1 = t
-                    t_top1_i = i
-                    save_t_top1 = {
-                    "state_dict": model.state_dict(),
-                    }
-                # Higher is better!
-                if v > v_top1:
-                    v_top1 = v
-                    v_top1_i = i
-                    save_v_top1 = {
-                    "state_dict": model.state_dict(),
-                    }
-            elif t_key == "train_acc_top2":
-                # Higher is better!
-                if t > t_top2:
-                    t_top2 = t
-                    t_top2_i = i
-                    save_t_top2 = {
-                    "state_dict": model.state_dict(),
-                    }
-                # Higher is better!
-                if v > v_top2:
-                    v_top2 = v
-                    v_top2_i = i
-                    save_v_top2 = {
-                    "state_dict": model.state_dict(),
-                    } 
-            elif t_key == "train_acc_top5":
-                # Higher is better!
-                if t > t_top5:
-                    t_top5 = t
-                    t_top5_i = i
-                    save_t_top5 = {
-                    "state_dict": model.state_dict(),
-                    }
-                # Higher is better!
-                if v > v_top5:
-                    v_top5 = v
-                    v_top5_i = i
-                    save_v_top5 = {
-                    "state_dict": model.state_dict(),
-                    } 
-            elif t_key == "train_acc_mean_pos":
-                # Lower is better!
-                if t < t_mean_pos:
-                    t_mean_pos = t
-                    t_mean_pos_i = i
-                    save_t_mean_pos = {
-                    "state_dict": model.state_dict(),
-                    }
-                # Lower is better!
-                if v < v_mean_pos:
-                    v_mean_pos = v
-                    v_mean_pos_i = i
-                    save_v_mean_pos = {
-                    "state_dict": model.state_dict(),
-                    }
         print()
-
-
-    torch.save(save_t_loss, path_join(args.output_dir, f"embedder_{config}_{t_loss_i}.pt"))                 
-    torch.save(save_v_loss, path_join(args.output_dir, f"embedder_{config}_{v_loss_i}.pt"))                 
     
-    torch.save(save_t_top1, path_join(args.output_dir, f"embedder_{config}_{t_top1_i}.pt"))                 
-    torch.save(save_t_top2, path_join(args.output_dir, f"embedder_{config}_{t_top2_i}.pt"))                 
-    torch.save(save_t_top5, path_join(args.output_dir, f"embedder_{config}_{t_top5_i}.pt")) 
 
-    torch.save(save_v_top1, path_join(args.output_dir, f"embedder_{config}_{v_top1_i}.pt"))                 
-    torch.save(save_v_top2, path_join(args.output_dir, f"embedder_{config}_{v_top2_i}.pt"))                 
-    torch.save(save_v_top5, path_join(args.output_dir, f"embedder_{config}_{v_top5_i}.pt"))                 
-
-    torch.save(save_t_mean_pos, path_join(args.output_dir, f"embedder_{config}_{t_mean_pos_i}.pt"))    
-    torch.save(save_v_mean_pos, path_join(args.output_dir, f"embedder_{config}_{v_mean_pos_i}.pt"))    
-    
+    if args.save_model:
+        save = {
+        "state_dict": model.state_dict(),
+        }
+        torch.save(save, path_join(args.output_dir, f"embedder_{config}.pt"))

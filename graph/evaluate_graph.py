@@ -3,7 +3,7 @@ from torcheval.metrics import MulticlassAUPRC, MulticlassConfusionMatrix, Multic
 from torch_geometric.utils import remove_isolated_nodes
 
 from GAT import GAT
-import graph_utils
+import utils_graph
 
 from os.path import join as path_join
 torch.set_printoptions(profile="full")
@@ -13,9 +13,9 @@ if __name__ == "__main__":
     # command line args for specifying the situation
     parser.add_argument("--use-cuda", action="store_true", default=False,
                         help="Use GPU acceleration if available")
-    parser.add_argument("--path", type=str, default="data/",
+    parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--load-model", type=str, default="weights/998_d02_GAT_284.pt",
+    parser.add_argument("--load-model", type=str, default="../weights/998_GAT_431.pt",
                         help="GAT model weights to use.")
     parser.add_argument("--mode", type=str, default="val",
                         choices=["train", "val", "test"],
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # for reproducibility
-    graph_utils.set_seed(42)
+    utils_graph.set_seed(42)
     
     print("STARTING...  setup:")
     print(args)
@@ -86,31 +86,31 @@ if __name__ == "__main__":
     loss = loss_func(model_output[idx], graph.y[idx].float()).item()
 
     # Rewrite the labels from vectors to integers
-    y_pred, y = graph_utils.rewrite_labels(model_output[idx].sigmoid().round()).long(), torch.sum(graph.y[idx], dim=-1).long()
+    y_pred, y = utils_graph.rewrite_labels(model_output[idx].sigmoid().round()).long(), torch.sum(graph.y[idx], dim=-1).long()
 
     # Valuation confusion matrices
-    conf_mat = graph_utils.confusion_matrix(conf, y_pred, y)
+    conf_mat = utils_graph.confusion_matrix(conf, y_pred, y)
 
     # Valuation accuracy
-    accuracy = graph_utils.accuracy(acc, y_pred, y)
+    accuracy = utils_graph.accuracy(acc, y_pred, y)
 
     # Valuation macro recall
-    m_recall = graph_utils.macro_recall(macro_recall, y_pred, y)
+    m_recall = utils_graph.macro_recall(macro_recall, y_pred, y)
 
     # Valuation macro precision
-    m_precision = graph_utils.macro_recall(macro_precision, y_pred, y)
+    m_precision = utils_graph.macro_recall(macro_precision, y_pred, y)
 
     # Valuation macro area under the precision-recall curve
-    m_AUPRC = graph_utils.macro_AUPRC(macro_AUPRC, y_pred, y)
+    m_AUPRC = utils_graph.macro_AUPRC(macro_AUPRC, y_pred, y)
 
     # One frame agreement
-    ofa = graph_utils.k_frame_agreement(y_pred, y, k=1)
+    ofa = utils_graph.k_frame_agreement(y_pred, y, k=1)
 
     # Train and valuation binary accuracy
     binary_mask = torch.logical_or((y == 0), (y == 3))
-    y_binary = graph_utils.rewrite_labels_binary(y[binary_mask])
-    y_pred_binary = graph_utils.rewrite_labels_binary(y_pred[binary_mask])
-    b_recall = graph_utils.binary_recall(binary_recall, y_pred_binary, y_binary)
+    y_binary = utils_graph.rewrite_labels_binary(y[binary_mask])
+    y_pred_binary = utils_graph.rewrite_labels_binary(y_pred[binary_mask])
+    b_recall = utils_graph.binary_recall(binary_recall, y_pred_binary, y_binary)
 
     # Print valuation loss
     print(f"Loss: {loss}")

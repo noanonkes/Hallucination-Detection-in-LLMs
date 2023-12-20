@@ -1,12 +1,10 @@
 import torch, argparse
-from torch_geometric.utils import remove_isolated_nodes
-from os.path import join as path_join
 import torch.nn.functional as F
-
+from torch_geometric.utils import remove_isolated_nodes
 from torcheval.metrics import MulticlassAUPRC, MulticlassConfusionMatrix, MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, BinaryRecall
 
-
-import graph_utils
+from os.path import join as path_join
+import utils_graph
 
 
 if __name__ == "__main__":
@@ -14,11 +12,11 @@ if __name__ == "__main__":
     # command line args for specifying the situation
     parser.add_argument("--use-cuda", action="store_true", default=False,
                         help="Use GPU acceleration if available")
-    parser.add_argument("--output_dir", type=str, default="weights/",
+    parser.add_argument("--output_dir", type=str, default="../weights/",
                         help="Path to save model weights to")
-    parser.add_argument("--path", type=str, default="data/",
+    parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--pt-epoch", type=int, default=950,
+    parser.add_argument("--pt-epoch", type=int, default=998,
                         help="Which epoch to use for the embedder weights")
     parser.add_argument("--k", type=int, default=5,
                         help="The k in kNN")
@@ -29,7 +27,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # for reproducibility
-    graph_utils.set_seed(42)
+    utils_graph.set_seed(42)
 
     print("STARTING...  setup:")
     print(args)
@@ -101,28 +99,28 @@ if __name__ == "__main__":
         y = torch.sum(graph.y[graph.val_idx], dim=-1).long()
 
     # Train and valuation confusion matrices
-    conf_mat = graph_utils.confusion_matrix(conf, preds, y)
+    conf_mat = utils_graph.confusion_matrix(conf, preds, y)
 
     # Train and valuation accuracy
-    accuracy = graph_utils.accuracy(acc, preds, y)
+    accuracy = utils_graph.accuracy(acc, preds, y)
 
     # Train and valuation macro recall
-    m_recall = graph_utils.macro_recall(macro_recall, preds, y)
+    m_recall = utils_graph.macro_recall(macro_recall, preds, y)
 
     # Train and valuation macro recall
-    m_precision = graph_utils.macro_precision(macro_precision, preds, y)
+    m_precision = utils_graph.macro_precision(macro_precision, preds, y)
 
     # Train and valuation binary accuracy
     binary_mask = torch.logical_or((y == 0), (y == 3))
-    y_binary = graph_utils.rewrite_labels_binary(y[binary_mask])
-    y_binary_pred = graph_utils.rewrite_labels_binary(preds[binary_mask])
-    b_recall = graph_utils.binary_recall(binary_recall, y_binary_pred, y_binary)
+    y_binary = utils_graph.rewrite_labels_binary(y[binary_mask])
+    y_binary_pred = utils_graph.rewrite_labels_binary(preds[binary_mask])
+    b_recall = utils_graph.binary_recall(binary_recall, y_binary_pred, y_binary)
 
     # One frame agreement
-    ofa = graph_utils.k_frame_agreement(preds, y, k=1)
+    ofa = utils_graph.k_frame_agreement(preds, y, k=1)
 
     # Valuation macro area under the precision-recall curve
-    m_AUPRC = graph_utils.macro_AUPRC(macro_AUPRC, preds, y)
+    m_AUPRC = utils_graph.macro_AUPRC(macro_AUPRC, preds, y)
 
     # Print train and valuation confusion matrices
     print(f"Confusion matrix:\n\t{conf_mat.long()}")

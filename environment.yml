@@ -195,3 +195,4 @@ dependencies:
     - umap==0.1.1
     - umap-learn==0.5.5
     - werkzeug==3.0.1
+prefix: /home/scur0992/.conda/envs/ir222

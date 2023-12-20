@@ -6,7 +6,7 @@ from torch_geometric.data import Data
 import argparse
 import numpy as np
 from dataloader import SentenceLabelDataset
-from graph_utils import *
+from utils_graph import *
 from os.path import join as path_join
 
 from torch_geometric.utils import to_undirected
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--use-cuda", action="store_true", default=False,
                         help="Use GPU acceleration if available")
-    parser.add_argument("--path", type=str, default="data/",
+    parser.add_argument("--path", type=str, default="../data/",
                         help="Path to data")
     parser.add_argument("--model_name", type=str, default="bert-base-uncased",
                         help="Name of model used to embed sentences")

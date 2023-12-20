@@ -243,24 +243,6 @@ def macro_recall(recall_metric, inputs, targets):
     return recall_metric.compute()
 
 
-def binary_accuracy(acc_metric, inputs, targets):
-    """
-    Computes binary accuracy metric based on predicted and target labels.
-
-    Args:
-    - recall_metric: Binary accuracy metric object.
-    - inputs (torch.Tensor): Predicted labels.
-    - targets (torch.Tensor): Target labels.
-
-    Returns:
-    - float: Computed binary accuracy value.
-    """
-
-    acc_metric.reset()
-    acc_metric.update(inputs, targets)
-    return acc_metric.compute()
-
-
 def macro_precision(precision_metric, inputs, targets):
     """
     Computes macro precision metric based on predicted and target labels.
