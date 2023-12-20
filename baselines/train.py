@@ -163,9 +163,9 @@ if __name__ == '__main__':
                         help='Optimizer to use for training.')
     parser.add_argument('--lr', type=float, default=0.01,
                         help='Learning rate for the optimizer.')
-    parser.add_argument('--batch_size', type=int, default=16,
+    parser.add_argument('--batch_size', type=int, default=256,
                         help='Number of items in a batch.')
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=1000,
                         help='Number of epochs to train the model.')
     parser.add_argument('--n_components', type=int, default=0,
                         help='Number of components for PCA.')
