@@ -97,5 +97,5 @@ if __name__ == "__main__":
     print("Final dataloader:", data)
     print("Saved graph and distances in ", args.path)
 
-    torch.save(data, path_join(args.path, "graph2.pt"))
+    torch.save(data, path_join(args.path, "graph.pt"))
     torch.save(distances, path_join(args.path, "distances.pt"))
