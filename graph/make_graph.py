@@ -23,6 +23,7 @@ if __name__ == "__main__":
                         help="Similarity threshold to form an edge")
     parser.add_argument("--distances", action="store_true", default=False,
                         help="Use pre-calculated distances matrix")
+    parser.add_argument("--num-workers", type=int, default=4)
     args = parser.parse_args()
 
     # for reproducibility
