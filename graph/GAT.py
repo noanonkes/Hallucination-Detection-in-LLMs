@@ -37,7 +37,7 @@ class GAT(torch.nn.Module):
         self.conv = GATConv(hid, n_classes, heads=in_head, concat=False, dropout=dropout)
 
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, edge_attr=None):
         """
         Forward pass of the GAT model.
 
@@ -55,6 +55,6 @@ class GAT(torch.nn.Module):
         x = self.linear(x)
 
         # single conv layer
-        x = self.conv(x, edge_index)
+        x = self.conv(x, edge_index=edge_index, edge_attr=edge_attr)
 
         return x

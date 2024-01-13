@@ -334,7 +334,7 @@ def get_optimizer(optimizer, model, lr):
     return optimizer
 
 
-def train_loop(data, model, loss_func, optimizer):
+def train_loop(data, model, loss_func, optimizer, train_edge_attr):
     """
     Train a GAT model for a single epoch.
 
@@ -353,11 +353,35 @@ def train_loop(data, model, loss_func, optimizer):
 
     optimizer.zero_grad()
 
-    out = model(data.x, data.edge_index)
+    out = model(data.x, data.edge_index, train_edge_attr)
 
     loss = loss_func(out[data.train_idx], data.y[data.train_idx].float())
     loss.backward()
 
     optimizer.step()
+  
+    return loss.item(), out
+
+def val_loop(data, model, loss_func, val_edge_attr):
+    """
+    Train a GAT model for a single epoch.
+
+    Args:
+    - data: Graph data.
+    - model (torch.nn.Module): Model to be trained.
+    - loss_func: Loss function.
+    - optimizer: Optimizer for training.
+
+    Returns:
+    - float: Training loss value.
+    - torch.Tensor: Model output.
+    """
+
+    model.eval()
+
+    with torch.no_grad():
+        out = model(data.x, data.edge_index, val_edge_attr)
+
+    loss = loss_func(out[data.val_idx], data.y[data.val_idx].float())
   
     return loss.item(), out

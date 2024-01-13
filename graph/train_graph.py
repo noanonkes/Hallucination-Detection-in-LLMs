@@ -52,6 +52,31 @@ if __name__ == "__main__":
     isolated = (remove_isolated_nodes(graph["edge_index"])[2] == False).sum(dim=0).item()
     print(f"Number of isolated nodes = {isolated}\n")
 
+    ######## DATA LEAKAGE PREVENTION WITH SPECIFIC EDGE ATTRIBUTES ########
+    train_idx = graph.train_idx # [t, ]
+    val_idx = graph.val_idx # [v, ]
+    edge_index = graph.edge_index.T # [N, 2]; (i, j) node pairs as rows
+
+    # load the distances
+    distances = torch.load(path_join(args.path, "distances.pt"), map_location=device)
+    # get the distances corresponding to the nodes that have edges
+    edge_attr = distances[edge_index[:, 0], edge_index[:, 1]] # [N, ]
+
+    # these are all the edges between only train nodes
+    train_mask = (torch.isin(edge_index[:, 0], train_idx)) & (torch.isin(edge_index[:, 1], train_idx))
+    # these are all the edges only between train and/or validation
+    val_mask = ((torch.isin(edge_index[:, 0], train_idx)) | (torch.isin(edge_index[:, 0], val_idx))) \
+                    & ((torch.isin(edge_index[:, 1], train_idx)) | (torch.isin(edge_index[:, 1], val_idx)))
+
+    # make all non train attributes zero
+    train_edge_attr = edge_attr.detach().clone()
+    train_edge_attr[~train_mask] = 0.    
+
+    # make all non train and validation attributes zero
+    val_edge_attr = edge_attr.detach().clone()
+    val_edge_attr[~val_mask] = 0.
+    ######## DATA LEAKAGE PREVENTION WITH SPECIFIC EDGE ATTRIBUTES ########
+
     # define model
     in_channels = graph.num_features
     out_channels = graph.y.shape[1] # number of columns
@@ -82,12 +107,16 @@ if __name__ == "__main__":
     best_recall = 0.
     for i in range(args.epochs):
 
-        # Train epoch and valuation loss
-        train_loss, model_output = utils_graph.train_loop(graph, gat, loss_func, optimizer)
-        val_loss = loss_func(model_output[graph.val_idx], graph.y[graph.val_idx].float()).item()
+        # Train epoch and train loss; edge attributes between non train nodes are zero
+        train_loss, model_output = utils_graph.train_loop(graph, gat, loss_func, optimizer, train_edge_attr)
 
-        # Rewrite the labels from vectors to integers
+        # Rewrite the train labels from vectors to integers
         y_pred_train, y_train = utils_graph.rewrite_labels(model_output[graph.train_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.train_idx], dim=-1).long()
+        
+        # Validation epoch and valuation loss; edge attributes between non train/val nodes are zero
+        val_loss, model_output = utils_graph.val_loop(graph, gat, loss_func, val_edge_attr)
+        
+        # Rewrite the labels from vectors to integers
         y_pred_val, y_val = utils_graph.rewrite_labels(model_output[graph.val_idx].sigmoid().round()).long(), torch.sum(graph.y[graph.val_idx], dim=-1).long()
 
         # Train and valuation confusion matrices

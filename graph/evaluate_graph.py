@@ -40,19 +40,46 @@ if __name__ == "__main__":
     graph = torch.load(path_join(args.path, "graph.pt"), map_location=device)
     graph.to(device)
 
+    # Removing isolated nodes
+    isolated = (remove_isolated_nodes(graph["edge_index"])[2] == False).sum(dim=0).item()
+    print(f"Number of isolated nodes = {isolated}\n")
+
+    ######## DATA LEAKAGE PREVENTION WITH SPECIFIC EDGE ATTRIBUTES ########
+    train_idx = graph.train_idx # [t, ]
+    val_idx = graph.val_idx # [v, ]
+    edge_index = graph.edge_index.T # [N, 2]; (i, j) node pairs as rows
+
+    # load the distances
+    distances = torch.load(path_join(args.path, "distances.pt"), map_location=device)
+    # get the distances corresponding to the nodes that have edges
+    edge_attr = distances[edge_index[:, 0], edge_index[:, 1]] # [N, ]
+
+    # these are all the edges between only train nodes
+    train_mask = (torch.isin(edge_index[:, 0], train_idx)) & (torch.isin(edge_index[:, 1], train_idx))
+    # these are all the edges only between train and/or validation
+    val_mask = ((torch.isin(edge_index[:, 0], train_idx)) | (torch.isin(edge_index[:, 0], val_idx))) \
+                    & ((torch.isin(edge_index[:, 1], train_idx)) | (torch.isin(edge_index[:, 1], val_idx)))
+
+    # make all non train attributes zero
+    train_edge_attr = edge_attr.detach().clone()
+    train_edge_attr[~train_mask] = 0.    
+
+    # make all non train and validation attributes zero
+    val_edge_attr = edge_attr.detach().clone()
+    val_edge_attr[~val_mask] = 0.
+    ######## DATA LEAKAGE PREVENTION WITH SPECIFIC EDGE ATTRIBUTES ########
+
     # Get the indices for slice to be evaluated
     if args.mode == "train":
         idx = graph.train_idx
+        edge_attr = train_edge_attr
     elif args.mode == "val":
         idx = graph.val_idx
+        edge_attr = val_edge_attr
     elif args.mode == "test":
         idx = graph.test_idx
     else:
         raise ValueError("Invalid mode")
-    
-    # Removing isolated nodes
-    isolated = (remove_isolated_nodes(graph["edge_index"])[2] == False).sum(dim=0).item()
-    print(f"Number of isolated nodes = {isolated}\n")
 
     # Define model
     in_channels = graph.num_features
@@ -81,7 +108,7 @@ if __name__ == "__main__":
 
     gat.eval()
     with torch.no_grad():
-        model_output = gat(graph.x, graph.edge_index)
+        model_output = gat(graph.x, graph.edge_index, edge_attr)
 
     loss = loss_func(model_output[idx], graph.y[idx].float()).item()
 
