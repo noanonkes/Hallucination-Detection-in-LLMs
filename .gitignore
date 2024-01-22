@@ -9,18 +9,15 @@ graph/graph_output/
 # Too big
 data/distances.pt
 data/graph.pt
-data/graph_old.pt
+data/SCGPT_graph.pt
+data/SCGPT_distances.pt
 
 runs/
-
-# Too big
-data/distances.pt
-data/graph.pt
 
 # runs
 images/
 runs/
-weights/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

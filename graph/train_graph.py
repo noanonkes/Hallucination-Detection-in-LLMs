@@ -17,15 +17,13 @@ if __name__ == "__main__":
                         help="Path to the data folder")
     parser.add_argument("--output_dir", type=str, default="../weights/",
                         help="Path to save model weights to")
-    parser.add_argument("--epochs", type=int, default=100,
+    parser.add_argument("--epochs", type=int, default=500,
                         help="Number of epochs to train the model")
     parser.add_argument("--optimizer", type=str, default="Adam",
                         choices=["SGD", "Adam"],
                         help="Which optimizer to use for training")
     parser.add_argument("--learning-rate", type=float, default=1e-3,
                         help="Learning rate for the optimizer")
-    parser.add_argument("--pt-epoch", type=int, default=998,
-                        help="Which epoch to use for the embedder weights")
     parser.add_argument("--save-model", action="store_true", default=False,
                         help="Whether to save best model weights")
     args = parser.parse_args()
@@ -84,7 +82,7 @@ if __name__ == "__main__":
     in_head = 2
     dropout = 0.2
 
-    embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"
+    embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07.pt"
     embedder = torch.nn.Sequential(*[torch.nn.Linear(in_channels, in_channels), torch.nn.ReLU(), torch.nn.Linear(in_channels, 128)])
     embedder.load_state_dict(torch.load(path_join(args.output_dir, embedder_file), map_location=device)["state_dict"])
     gat = GAT(embedder, n_in=in_channels, hid=hidden_channels,
@@ -166,4 +164,4 @@ if __name__ == "__main__":
                 "state_dict": gat.state_dict(),
                 }
     if args.save_model:
-        torch.save(save, path_join(args.output_dir, f"{args.pt_epoch}_GAT_{best_i}.pt"))
+        torch.save(save, path_join(args.output_dir, f"GAT_{best_i}.pt"))

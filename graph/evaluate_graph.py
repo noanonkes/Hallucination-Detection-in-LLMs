@@ -15,7 +15,7 @@ if __name__ == "__main__":
                         help="Use GPU acceleration if available")
     parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--load-model", type=str, default="../weights/998_GAT_431.pt",
+    parser.add_argument("--load-model", type=str, default="../weights/GAT_379.pt",
                         help="GAT model weights to use.")
     parser.add_argument("--mode", type=str, default="val",
                         choices=["train", "val", "test"],

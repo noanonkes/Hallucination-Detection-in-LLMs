@@ -16,8 +16,6 @@ if __name__ == "__main__":
                         help="Path to save model weights to")
     parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--pt-epoch", type=int, default=998,
-                        help="Which epoch to use for the embedder weights")
     parser.add_argument("--k", type=int, default=5,
                         help="The k in kNN")
     parser.add_argument("--combined", action="store_true", default=False,
@@ -52,7 +50,7 @@ if __name__ == "__main__":
     in_channels = graph.num_features
     out_channels = graph.y.shape[1] # number of columns
 
-    embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07_{args.pt_epoch}.pt"
+    embedder_file = f"embedder_act_ReLU_opt_AdamW_lr_0.0001_bs_256_t_0.07.pt"
     embedder = torch.nn.Sequential(*[torch.nn.Linear(in_channels, in_channels), torch.nn.ReLU(), torch.nn.Linear(in_channels, 128)])
     embedder.load_state_dict(torch.load(path_join(args.output_dir, embedder_file), map_location=device)["state_dict"])
     embedder.to(device)

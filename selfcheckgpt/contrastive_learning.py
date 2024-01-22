@@ -129,7 +129,7 @@ if __name__ == "__main__":
         device = torch.device("cpu")
 
     # load graph
-    graph = torch.load(path_join(args.path, "1024_SCGPT_graph.pt"), map_location=device)
+    graph = torch.load(path_join(args.path, "768_SCGPT_graph.pt"), map_location=device)
 
     # create a simple dataset in order to easily batch from
     train_dataset = SimpleDataset(graph.x[graph.train_idx], graph.y[graph.train_idx])
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     weight_decay = 1e-4 # lr scheduler
     temp = 0.07 # loss
 
-    layers = [nn.Linear(1024, 1024), activation, nn.Linear(1024, 128)]
+    layers = [nn.Linear(768, 768), activation, nn.Linear(768, 128)]
     model = nn.Sequential(*layers)
     model.to(device)
     
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     # contrastive loss function with specific temperature
     loss_func = SimCLR(device=device, temperature=temp)
     
-    config = f"1024_SCGPT_act_{activation._get_name()}_opt_AdamW_lr_{lr}_bs_{args.batch_size}_t_{temp}"
+    config = f"act_{activation._get_name()}_opt_AdamW_lr_{lr}_bs_{args.batch_size}_t_{temp}"
     print(f"Configuration:\n\t{config}")
 
     for i in range(args.epochs):
@@ -180,4 +180,4 @@ if __name__ == "__main__":
         save = {
         "state_dict": model.state_dict(),
         }
-        torch.save(save, path_join(args.output_dir, f"1024_SCGPT_embedder_{config}.pt"))
+        torch.save(save, path_join(args.output_dir, f"SCGPT_embedder_{config}.pt"))

@@ -56,11 +56,28 @@ python train_graph.py [arguments]
 --use-cuda: Enable GPU acceleration if available (default: False)
 --path <path_to_data>: Set the path to the data folder (default: "../data/")
 --output_dir <output_directory>: Specify the path to save the model weights (default: "../weights/")
---epochs <num_epochs>: Define the number of epochs to train the model (default: 100)
+--epochs <num_epochs>: Define the number of epochs to train the model (default: 500)
 --optimizer <optimizer_type>: Choose the optimizer for training (choices: "SGD", "Adam", default: "Adam")
 --learning-rate <lr>: Set the learning rate for the optimizer (default: 1e-3)
---pt-epoch <epoch_number>: Specify the epoch to use for the embedder weights (default: 998)
 --save-model: Toggle to save the best model weights based on the highest recall on validation (default: False)
+```
+
+## Evaluate GAT Model
+The `evaluate_graph.py` script employs the Contrastive Learning MultiLayer Perceptron (CL-MLP) as an embedder and integrates it with a Graph Attention Network (GAT) model. The validating is conducted on the train, val, or test set.
+
+### Usage
+
+To execute the training script, utilize the following command:
+```bash
+python evaluate_graph.py [arguments]
+```
+
+### Arguments
+```bash
+--use-cuda: Enable GPU acceleration if available (default: False)
+--path <path_to_data>: Set the path to the data folder (default: "../data/")
+--load-model <path-to-model-weights>: Specify the path to load the model weights (default: "../weights/GAT_379.pt")
+--mode <set-to-validate-on>: Define the set on which to validate (default: "val")
 ```
 
 ## Visualize
@@ -100,7 +117,6 @@ python kNN.py [arguments]
 --use-cuda: Enable GPU acceleration if available (default: False)
 --output_dir <output_directory>: Specify the path to save model weights (default: "../weights/")
 --path <path_to_data>: Set the path to the data folder (default: "../data/")
---pt-epoch <epoch_number>: Specify the epoch to use for the embedder weights (default: 998)
 --k <value>: Define the value of k in kNN (default: 5)
 --combined: Use both train and validation datasets (default: False)
 --full: Utilize train and validation datasets, and test on the train dataset (default: False)

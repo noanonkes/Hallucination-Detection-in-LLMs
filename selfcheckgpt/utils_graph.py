@@ -20,6 +20,14 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
+def mean_pooling(model_output, attention_mask):
+    """Take attention mask into account for correct averaging"""
+
+    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+
 def get_embeddings(model, tokenizer, dataloader, device):
     """
     Given a model and tokenizer, maps all the sentences
@@ -37,17 +45,27 @@ def get_embeddings(model, tokenizer, dataloader, device):
 
     embeddings = []
     for inputs, _ in dataloader:
-        # manually add the CLS token
-        inputs = ["[CLS] " + s for s in inputs]
-        encoded_inputs = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
+        if tokenizer is not None:
+            encoded_inputs = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+        else:
+            encoded_inputs = inputs
 
         # forward pass through the model to get embeddings
         with torch.no_grad():
-            output = model(**encoded_inputs)
+            if tokenizer is not None:
+                output = model(**encoded_inputs)
+            else:
+                sentence_embeddings = torch.tensor(model.encode(encoded_inputs))
+        
+        if tokenizer is not None:
+            # Perform pooling
+            sentence_embeddings = mean_pooling(output, encoded_inputs['attention_mask'])
 
-        # extract the CLS embedding
-        cls_embedding = output.last_hidden_state[:, 0, :]
-        embeddings.append(cls_embedding)
+            # Normalize embeddings
+            sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
+
+
+        embeddings.append(sentence_embeddings)
 
     return torch.concat(embeddings)
 
@@ -155,9 +173,9 @@ def rewrite_labels_binary(labels):
       and 1 represents 'true' based on the original label tensor.
 
     Example:
-    >>> original_labels = torch.tensor([0, 1, 2, 3, 2])
+    >>> original_labels = torch.tensor([0, 1, 2, 0, 2])
     >>> rewrite_labels_binary(original_labels)
-    Output: tensor([0, 1, 1, 1, 1])
+    Output: tensor([0, 0, 1, 0, 1])
     """
     
     return torch.where(labels == 2, 1, 0)

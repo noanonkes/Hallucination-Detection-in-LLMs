@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
-from transformers import BertTokenizer, BertModel
-from transformers import RobertaTokenizer, RobertaModel
+from transformers import AutoTokenizer, AutoModel
+
 from torch_geometric.data import Data
 
 import argparse
@@ -18,9 +18,9 @@ if __name__ == "__main__":
                         help="Use GPU acceleration if available")
     parser.add_argument("--path", type=str, default="../data/",
                         help="Path to data")
-    parser.add_argument("--model_name", type=str, default="bert-base-uncased",
+    parser.add_argument("--model_name", type=str, default="sentence-transformers/all-distilroberta-v1",
                         help="Name of model used to embed sentences")
-    parser.add_argument("--threshold", type=float, default=0.85,
+    parser.add_argument("--threshold", type=float, default=0.55,
                         help="Similarity threshold to form an edge")
     parser.add_argument("--distances", action="store_true", default=False,
                         help="Use pre-calculated distances matrix")
@@ -46,12 +46,9 @@ if __name__ == "__main__":
     dataloader = DataLoader(full_dataset, batch_size=128,
                             shuffle=False)
 
-    # Load pre-trained BERT model and tokenizer
-    # tokenizer = BertTokenizer.from_pretrained(args.model_name)
-    # model = BertModel.from_pretrained(args.model_name)
-
-    tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
-    model = RobertaModel.from_pretrained('roberta-large')
+    # Load pre-trained deBERTa model and tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    model = AutoModel.from_pretrained(args.model_name)
 
     model.to(device)
 
@@ -65,7 +62,7 @@ if __name__ == "__main__":
 
     # if pre-calculated distances; use those
     if args.distances:
-        distances = torch.load(path_join(args.path, "1024_SCGPT_distances.pt"), map_location=device)
+        distances = torch.load(path_join(args.path, "768_SCGPT_distances.pt"), map_location=device)
     else:
         distances = None
 
@@ -106,5 +103,5 @@ if __name__ == "__main__":
     print("Final dataloader:", data)
     print("Saved graph and distances in ", args.path)
 
-    torch.save(data, path_join(args.path, "1024_SCGPT_graph.pt"))
-    torch.save(distances, path_join(args.path, "1024_SCGPT_distances.pt"))
+    torch.save(data, path_join(args.path, "768_SCGPT_graph.pt"))
+    torch.save(distances, path_join(args.path, "768_SCGPT_distances.pt"))

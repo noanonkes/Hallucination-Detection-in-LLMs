@@ -15,7 +15,7 @@ if __name__ == "__main__":
                         help="Use GPU acceleration if available")
     parser.add_argument("--path", type=str, default="../data/",
                         help="Path to the data folder")
-    parser.add_argument("--load-model", type=str, default="../weights/SCGPT_GAT_161.pt",
+    parser.add_argument("--load-model", type=str, default="../weights/SCGPT_GAT_435.pt",
                         help="GAT model weights to use.")
     parser.add_argument("--mode", type=str, default="val",
                         choices=["train", "val", "test"],
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         device = torch.device("cpu")
 
     # Load graph
-    graph = torch.load(path_join(args.path, "1024_SCGPT_graph.pt"), map_location=device)
+    graph = torch.load(path_join(args.path, "768_SCGPT_graph.pt"), map_location=device)
     graph.to(device)
 
     # Removing isolated nodes
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     edge_index = graph.edge_index.T # [N, 2]; (i, j) node pairs as rows
 
     # load the distances
-    distances = torch.load(path_join(args.path, "1024_SCGPT_distances.pt"), map_location=device)
+    distances = torch.load(path_join(args.path, "768_SCGPT_distances.pt"), map_location=device)
     # get the distances corresponding to the nodes that have edges
     edge_attr = distances[edge_index[:, 0], edge_index[:, 1]] # [N, ]
 
@@ -137,8 +137,9 @@ if __name__ == "__main__":
     ofa = utils_graph.k_frame_agreement(y_pred, y, k=1)
 
     y_pred, y = utils_graph.rewrite_labels_binary(y_pred), utils_graph.rewrite_labels_binary(y) 
+
     # Valuation macro area under the precision-recall curve
-    b_AUPRC = utils_graph.macro_AUPRC(macro2_AUPRC, y_pred, y, num_classes=2)
+    m2_AUPRC = utils_graph.macro_AUPRC(macro2_AUPRC, y_pred, y, num_classes=2)
 
     # Print valuation loss
     print(f"Loss: {loss}")
@@ -155,5 +156,5 @@ if __name__ == "__main__":
     # Print valuation macro AUPRC
     print(f"Macro AUPRC: {m_AUPRC}")
     # Print valuation binary AUPRC
-    print(f"AUPRC: {b_AUPRC}")
+    print(f"AUPRC: {m2_AUPRC}")
  

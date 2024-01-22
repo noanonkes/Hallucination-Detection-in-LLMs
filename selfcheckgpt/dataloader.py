@@ -14,19 +14,17 @@ class SentenceLabelDataset(Dataset):
 
     Args:
         path (str): Directory path where CSV files are located.
-        limit (int, optional): Number of samples to use from the dataset (for debugging or limiting dataset size).
 
     Attributes:
         pairs (list): List of (query, answer) pairs.
         labels (list): List of labels associated with the pairs.
     """
-    def __init__(self, path, limit=0):
+    def __init__(self, path):
         """
-        Initializes the SentenceLabelDataset with the provided CSV file path and optional limit for dataset size.
+        Initializes the SentenceLabelDataset with the provided CSV file path.
 
         Args:
             path (str): Directory path where CSV files are located.
-            limit (int, optional): Number of samples to use from the dataset (for debugging or limiting dataset size).
         """
         self.answers = []
         self.labels = []
