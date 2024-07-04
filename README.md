@@ -1,6 +1,6 @@
-# Detecting Hallucinations in Large Language Model Generations using Graph Structures
+# Leveraging Graph Structures to Detect Hallucinations in Large Language Models
 
-Welcome to the GitHub repository for the research project conducted at the University of Amsterdam, focusing on "Detecting Hallucinations in Large Language Model Generations using Graph Structures." This project explores approaches to enhance the trustworthiness of large language models by leveraging graph structures for the detection of hallucinations.
+Welcome to the GitHub repository for the research project conducted at the University of Amsterdam, focusing on "Leveraging Graph Structures to Detect Hallucinations in Large Language Models." This project explores approaches to enhance the trustworthiness of large language models by leveraging graph structures for the detection of hallucinations.
 
 ## Overview
 
